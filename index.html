@@ -16,8 +16,9 @@
 <style>
 :root{
   --bg:#ffffff;--surface:#f0f4f9;--surface2:#e6ebf2;--hover:#e9eef6;--text:#1f1f1f;--muted:#5f6368;--border:#dde3ea;--code:#111318;
-  --g1:#4f8cff;--g2:#9b6bff;--g3:#ff6ba8;
-  --grad:linear-gradient(90deg,var(--g1),var(--g2),var(--g3));
+  --g1:#22d3ee;--g2:#818cf8;--g3:#e879f9;--g4:#fb7185;
+  --grad:linear-gradient(90deg,var(--g1),var(--g2),var(--g3),var(--g4));
+  --ring:conic-gradient(from var(--a),var(--g1),var(--g2),var(--g3),var(--g4),var(--g3),var(--g2),var(--g1));
   --scrim:#0006;
 }
 [data-theme=dark]{
@@ -29,7 +30,11 @@ html,body{margin:0;height:100%}
 body{font-family:"Figtree",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text);overflow:hidden;-webkit-font-smoothing:antialiased}
 button{font:inherit;color:inherit}
 .app{display:flex;height:100vh;height:100dvh}
-.grad-text{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+@property --a{syntax:"<angle>";inherits:false;initial-value:0deg}
+@keyframes ring{to{--a:360deg}}
+@keyframes flow{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+.grad-text{background:linear-gradient(90deg,var(--g1),var(--g2),var(--g3),var(--g4),var(--g2),var(--g1));background-size:300% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:flow 8s ease-in-out infinite}
+@media (prefers-reduced-motion:reduce){*{animation-duration:0s!important;animation-iteration-count:1!important}}
 
 /* Spark */
 .spark{width:28px;height:28px;flex-shrink:0;display:block}
@@ -77,7 +82,15 @@ button{font:inherit;color:inherit}
 .side-btn:hover{background:var(--hover)}
 
 /* Main */
-.main{flex:1;display:flex;flex-direction:column;min-width:0;position:relative}
+.main{flex:1;display:flex;flex-direction:column;min-width:0;position:relative;isolation:isolate;overflow:hidden}
+.aurora{position:absolute;inset:-20%;z-index:-1;pointer-events:none;opacity:.55;transition:opacity 1s}
+.aurora i{position:absolute;width:55%;height:55%;border-radius:50%;filter:blur(70px);opacity:.35;animation:drift 22s ease-in-out infinite alternate}
+.aurora i:nth-child(1){background:var(--g1);left:5%;top:55%}
+.aurora i:nth-child(2){background:var(--g2);left:40%;top:65%;animation-duration:28s;animation-delay:-6s}
+.aurora i:nth-child(3){background:var(--g3);left:25%;top:75%;animation-duration:25s;animation-delay:-12s}
+.aurora.dim{opacity:.18}
+[data-theme=light] .aurora{opacity:.35}[data-theme=light] .aurora.dim{opacity:.1}
+@keyframes drift{0%{transform:translate(0,0) scale(1)}50%{transform:translate(12%,-8%) scale(1.15)}100%{transform:translate(-10%,6%) scale(.9)}}
 .topbar{height:60px;display:flex;align-items:center;gap:6px;padding:0 10px;flex-shrink:0;padding-top:env(safe-area-inset-top);height:calc(60px + env(safe-area-inset-top))}
 .icon-btn{width:42px;height:42px;border-radius:50%;border:none;background:transparent;cursor:pointer;display:grid;place-items:center;font-size:20px;flex-shrink:0;transition:background .15s}
 .icon-btn:hover{background:var(--hover)}
@@ -152,18 +165,23 @@ button{font:inherit;color:inherit}
 
 /* Composer */
 .composer-wrap{padding:6px 14px calc(10px + env(safe-area-inset-bottom));flex-shrink:0}
-.composer{max-width:760px;margin:0 auto;display:flex;align-items:flex-end;gap:2px;border-radius:30px;padding:8px 8px 8px 20px;border:1px solid transparent;background:linear-gradient(var(--surface),var(--surface)) padding-box,linear-gradient(var(--border),var(--border)) border-box;transition:box-shadow .25s}
-.composer:focus-within{background:linear-gradient(var(--surface),var(--surface)) padding-box,var(--grad) border-box;box-shadow:0 8px 30px color-mix(in srgb,var(--g2) 18%,transparent)}
+.zone{position:relative;max-width:760px;margin:0 auto}
+#halo{position:absolute;left:-46px;top:-56px;width:calc(100% + 92px);height:calc(100% + 112px);pointer-events:none;z-index:0}
+.glow{position:absolute;inset:6px 18px;border-radius:32px;background:var(--ring);filter:blur(20px);opacity:.35;z-index:0;animation:ring 7s linear infinite;transition:opacity .4s}
+.composer{position:relative;z-index:1;display:flex;align-items:flex-end;gap:2px;border-radius:32px;padding:8px 8px 8px 20px;border:1.5px solid transparent;background:linear-gradient(var(--surface),var(--surface)) padding-box,var(--ring) border-box;animation:ring 7s linear infinite;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.zone:focus-within .glow{opacity:.6}
+.zone.busy .glow,.zone.busy .composer{animation-duration:1.6s}
+.zone.busy .glow{opacity:.7}
 #input{flex:1;border:none;outline:none;resize:none;background:transparent;color:var(--text);font:inherit;font-size:16px;line-height:1.45;max-height:200px;padding:10px 0}
 #input::placeholder{color:var(--muted)}
-.send{width:44px;height:44px;border-radius:50%;border:none;background:var(--text);color:var(--bg);cursor:pointer;display:grid;place-items:center;flex-shrink:0;transition:transform .15s,opacity .2s}
+.send{width:44px;height:44px;border-radius:50%;border:none;background:linear-gradient(135deg,var(--g1),var(--g2) 45%,var(--g3));background-size:200% 200%;animation:flow 6s ease infinite;color:#fff;box-shadow:0 4px 18px color-mix(in srgb,var(--g2) 45%,transparent);cursor:pointer;display:grid;place-items:center;flex-shrink:0;transition:transform .15s,opacity .2s}
 .send:not(:disabled):active{transform:scale(.92)}
-.send:disabled{opacity:.25;cursor:default}
+.send:disabled{opacity:.3;cursor:default;box-shadow:none;filter:saturate(.4)}
 .send svg{width:20px;height:20px}
 .mic{color:var(--muted)}
 .mic.on{color:#fff;background:var(--grad);animation:pulse2 1.2s infinite}
 @keyframes pulse2{50%{box-shadow:0 0 0 8px color-mix(in srgb,var(--g3) 25%,transparent)}}
-.hint{text-align:center;color:var(--muted);font-size:12px;margin-top:8px;opacity:.8}
+.hint{position:relative;z-index:2;text-align:center;color:var(--muted);font-size:12px;margin-top:12px;opacity:.85}
 
 /* Loader & sheets */
 .overlay{position:fixed;inset:0;background:var(--scrim);display:none;align-items:center;justify-content:center;z-index:50;padding:16px;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
@@ -228,7 +246,7 @@ input[type=range]{width:100%;accent-color:var(--g2)}
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <defs>
     <linearGradient id="hmiGrad" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#4f8cff"/><stop offset=".5" stop-color="#9b6bff"/><stop offset="1" stop-color="#ff6ba8"/>
+      <stop offset="0" stop-color="#22d3ee"/><stop offset=".4" stop-color="#818cf8"/><stop offset=".75" stop-color="#e879f9"/><stop offset="1" stop-color="#fb7185"/>
     </linearGradient>
     <symbol id="spark" viewBox="0 0 24 24"><path fill="url(#hmiGrad)" d="M12 1.5c.7 5.6 4.9 9.8 10.5 10.5-5.6.7-9.8 4.9-10.5 10.5C11.3 16.9 7.1 12.7 1.5 12 7.1 11.3 11.3 7.1 12 1.5z"/></symbol>
   </defs>
@@ -245,6 +263,7 @@ input[type=range]{width:100%;accent-color:var(--g2)}
   <div class="scrim" id="scrim"></div>
 
   <main class="main">
+    <div class="aurora" id="aurora" aria-hidden="true"><i></i><i></i><i></i></div>
     <header class="topbar">
       <button class="icon-btn menu-btn" id="menuBtn" aria-label="Menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h10"/></svg></button>
       <button class="model-pill" id="modelPill" title="Changer de cerveau"><span class="name grad-text" id="modelName">HMI</span><i class="dot" id="dot"></i><span class="state" id="modelState"></span><span class="chev">▾</span></button>
@@ -255,10 +274,14 @@ input[type=range]{width:100%;accent-color:var(--g2)}
     <section class="messages" id="messages"><div class="inner" id="inner"></div></section>
 
     <div class="composer-wrap">
+      <div class="zone" id="zone">
+      <canvas id="halo" aria-hidden="true"></canvas>
+      <div class="glow" aria-hidden="true"></div>
       <div class="composer">
         <textarea id="input" rows="1" placeholder="Demande à HMI"></textarea>
         <button class="icon-btn mic" id="micBtn" title="Dicter" aria-label="Dicter"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
         <button class="send" id="sendBtn" disabled aria-label="Envoyer"></button>
+      </div>
       </div>
       <div class="hint">HMI tourne sur ton appareil : tes messages ne le quittent jamais. Elle peut se tromper.</div>
     </div>
@@ -621,7 +644,7 @@ function renderMessages() {
   chat.messages.forEach((m, i) => inner.appendChild(msgEl(m, i === chat.messages.length - 1)));
   box.scrollTop = box.scrollHeight;
 }
-function renderAll() { renderSidebar(); renderMessages(); updateStatus(); }
+function renderAll() { renderSidebar(); renderMessages(); updateStatus(); syncFx(); }
 
 let rafPending = false, pendingText = "";
 function updateLast(text) {
@@ -654,7 +677,11 @@ function setGenerating(b) {
   generating = b;
   sendBtn.innerHTML = b ? ICON.stop : ICON.send;
   sendBtn.setAttribute("aria-label", b ? "Arrêter" : "Envoyer");
-  syncSend(); updateStatus();
+  syncSend(); updateStatus(); syncFx();
+}
+function syncFx() {
+  $("#zone").classList.toggle("busy", generating);
+  $("#aurora").classList.toggle("dim", !!currentChat()?.messages.length);
 }
 function syncSend() { sendBtn.disabled = !generating && !input.value.trim(); }
 
@@ -880,6 +907,56 @@ $("#clearAll").onclick = () => {
   chats = []; currentId = null; saveChats(); renderAll();
   $("#settingsModal").classList.remove("show");
 };
+
+/* ---------- Halo d'étoiles animé autour de la barre de saisie ---------- */
+(function halo() {
+  const cv = $("#halo"), ctx = cv.getContext("2d"), zone = $("#zone");
+  const COLS = [[34, 211, 238], [129, 140, 248], [232, 121, 249], [251, 113, 133]];
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  let W = 0, H = 0, dpr = 1, pts = [], level = .5;
+  function colorAt(t) {
+    const x = Math.min(.999, Math.max(0, t)) * (COLS.length - 1), i = Math.floor(x), f = x - i, a = COLS[i], b = COLS[i + 1];
+    return [a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f, a[2] + (b[2] - a[2]) * f];
+  }
+  function build() {
+    const r = cv.getBoundingClientRect();
+    dpr = Math.min(2, devicePixelRatio || 1); W = r.width; H = r.height;
+    cv.width = W * dpr; cv.height = H * dpr;
+    const comp = zone.querySelector(".composer").getBoundingClientRect();
+    const cx = comp.left - r.left + comp.width / 2, cy = comp.top - r.top + comp.height / 2;
+    const hw = comp.width / 2, hh = comp.height / 2, rad = Math.min(32, hh), MAX = 52, step = 9;
+    pts = [];
+    for (let y = step / 2; y < H; y += step) for (let x = step / 2; x < W; x += step) {
+      const px = Math.abs(x - cx) - (hw - rad), py = Math.abs(y - cy) - (hh - rad);
+      const d = Math.hypot(Math.max(px, 0), Math.max(py, 0)) + Math.min(Math.max(px, py), 0) - rad;
+      if (d < 3 || d > MAX) continue;
+      const fall = Math.pow(1 - d / MAX, 1.6) * (y > cy + hh ? .3 : 1);
+      pts.push({ x, y, fall, col: colorAt(x / W), ph: Math.random() * 6.28, sz: 1 + Math.random() * 1.1 });
+    }
+  }
+  function draw(t) {
+    const target = generating ? 1 : zone.matches(":focus-within") ? .85 : .5;
+    level += (target - level) * .05;
+    const speed = generating ? 4 : 1.4;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, W, H);
+    const ts = t / 1000;
+    for (const p of pts) {
+      const wave = .5 + .5 * Math.sin(ts * speed - p.x * .025 + p.ph * .3);
+      const tw = .55 + .45 * Math.sin(ts * 2.2 + p.ph);
+      const a = p.fall * level * (.25 + .75 * wave) * tw;
+      if (a < .03) continue;
+      const s = p.sz * (.8 + .5 * wave);
+      ctx.fillStyle = `rgba(${p.col[0] | 0},${p.col[1] | 0},${p.col[2] | 0},${a.toFixed(3)})`;
+      ctx.fillRect(p.x - s, p.y - .45, s * 2, .9);
+      ctx.fillRect(p.x - .45, p.y - s, .9, s * 2);
+    }
+    if (!reduce) requestAnimationFrame(draw);
+  }
+  new ResizeObserver(build).observe(zone);
+  addEventListener("resize", build);
+  build(); requestAnimationFrame(draw);
+})();
 
 /* ---------- Démarrage ---------- */
 applyTheme();
