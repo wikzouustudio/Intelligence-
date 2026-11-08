@@ -142,8 +142,29 @@ button{font:inherit;color:inherit}
 .content blockquote{background:var(--surface);border-left:3px solid var(--g2);margin:.4em 0 1em;padding:12px 16px;border-radius:0 14px 14px 0;color:var(--text)}
 .content blockquote p{margin:0}
 .content a{color:var(--g1)}
-.copy-code{position:absolute;top:8px;right:8px;font-size:12px;border:none;border-radius:8px;padding:5px 10px;background:#ffffff14;color:#e5e7eb;cursor:pointer}
-.copy-code:hover{background:#ffffff26}
+.code-actions{position:absolute;top:8px;right:8px;display:flex;gap:6px}
+.code-actions button{font-size:12px;border:none;border-radius:8px;padding:5px 10px;background:#ffffff14;color:#e5e7eb;cursor:pointer;font-family:"Figtree",sans-serif}
+.code-actions button:hover{background:#ffffff26}
+.code-actions button.run{background:linear-gradient(90deg,#fde047,#4ade80);color:#0b1a0f;font-weight:700}
+.code-actions button.run:hover{filter:brightness(1.1)}
+.runner{border:1px solid var(--border);border-radius:16px;overflow:hidden;margin:-.3em 0 1.1em;background:var(--surface)}
+.runner-bar{display:flex;justify-content:space-between;align-items:center;padding:4px 6px 4px 14px;font-size:13px;color:var(--muted);font-weight:600}
+.runner-bar button{border:none;background:none;color:var(--text);width:34px;height:34px;border-radius:50%;cursor:pointer;font-size:15px}
+.runner-bar button:hover{background:var(--hover)}
+.runner iframe{display:block;width:100%;height:400px;border:0;background:#fff}
+.fullrun{position:fixed;inset:0;z-index:80;background:#000;display:flex;flex-direction:column;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)}
+.fullrun .runner-bar{background:#111;color:#bbb}.fullrun .runner-bar button{color:#fff}
+.fullrun iframe{flex:1;width:100%;border:0;background:#fff}
+.gen-img{margin-top:12px;max-width:440px}
+.gen-img img{display:block;width:100%;height:auto;border-radius:20px;background:var(--surface);box-shadow:0 10px 40px #0005}
+.img-actions{display:flex;gap:8px;margin-top:10px}
+.img-actions a{display:inline-flex;align-items:center;gap:6px;background:var(--surface);color:var(--text);text-decoration:none;border-radius:999px;padding:8px 14px;font-size:13px;font-weight:500}
+.sources{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px;align-items:center}
+.sources .lab{font-size:12px;color:var(--muted);margin-right:2px;font-weight:600}
+.src{display:inline-block;background:var(--surface);border-radius:999px;padding:6px 12px;font-size:12.5px;color:var(--text);text-decoration:none;max-width:230px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.src b{color:var(--g3);margin-right:4px}
+.mode-chip{display:none;align-items:center;align-self:center;background:color-mix(in srgb,var(--g3) 20%,transparent);color:var(--text);border:none;border-radius:999px;padding:7px 11px;font-size:13px;font-weight:600;white-space:nowrap;flex-shrink:0;cursor:pointer;margin-right:4px}
+.mode-chip.on{display:inline-flex}
 .cursor>*:last-child::after,.cursor:empty::after{content:"";display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--grad);margin-left:6px;vertical-align:middle;animation:pulse 1s ease-in-out infinite}
 @keyframes pulse{50%{transform:scale(.5);opacity:.5}}
 .thinking{display:inline-block;font-weight:500;background:linear-gradient(90deg,var(--muted) 0%,var(--muted) 35%,var(--g2) 50%,var(--muted) 65%,var(--muted) 100%);background-size:250% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:shimmer 1.8s linear infinite;padding-top:3px}
@@ -173,6 +194,7 @@ button{font:inherit;color:inherit}
 .composer{box-shadow:0 0 0 1px color-mix(in srgb,var(--g2) 25%,transparent),0 0 40px color-mix(in srgb,var(--g3) 35%,transparent),inset 0 0 22px color-mix(in srgb,var(--g3) 10%,transparent)}
 .zone.busy .glow,.zone.busy .composer{animation-duration:1.6s}
 .zone.busy .glow{opacity:1;filter:blur(30px)}
+.composer{padding-left:6px!important}
 #input{flex:1;border:none;outline:none;resize:none;background:transparent;color:var(--text);font:inherit;font-size:16px;line-height:1.45;max-height:200px;padding:10px 0}
 #input::placeholder{color:var(--muted)}
 .send{width:44px;height:44px;border-radius:50%;border:none;background:linear-gradient(135deg,var(--g1),var(--g2) 45%,var(--g3));background-size:200% 200%;animation:flow 6s ease infinite;color:var(--on-grad);box-shadow:0 0 24px color-mix(in srgb,var(--g3) 60%,transparent);cursor:pointer;display:grid;place-items:center;flex-shrink:0;transition:transform .15s,opacity .2s}
@@ -279,12 +301,14 @@ input[type=range]{width:100%;accent-color:var(--g2)}
       <canvas id="halo" aria-hidden="true"></canvas>
       <div class="glow" aria-hidden="true"></div>
       <div class="composer">
+        <button class="icon-btn plus-btn" id="plusBtn" title="Outils" aria-label="Outils : image, recherche"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+        <button class="mode-chip" id="modeChip" title="Retirer l'outil"></button>
         <textarea id="input" rows="1" placeholder="Demande à HMI"></textarea>
         <button class="icon-btn mic" id="micBtn" title="Dicter" aria-label="Dicter"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
         <button class="send" id="sendBtn" disabled aria-label="Envoyer"></button>
       </div>
       </div>
-      <div class="hint">HMI tourne sur ton appareil : tes messages ne le quittent jamais. Elle peut se tromper.</div>
+      <div class="hint">HMI tourne sur ton appareil. Seules la recherche 🌐 et les images 🎨 passent par internet. Elle peut se tromper.</div>
     </div>
   </main>
 </div>
@@ -352,7 +376,7 @@ const MODELS = [
 const LIGHT_ID = "Qwen2.5-0.5B-Instruct-q4f16_1-MLC";
 
 const DEFAULT_SYSTEM = [
-  "Tu es Home Made Intelligence (HMI), un assistant IA expert, amical et précis. Tu fonctionnes entièrement sur l'appareil de l'utilisateur, sans internet : tu ne connais pas l'actualité récente.",
+  "Tu es Home Made Intelligence (HMI), un assistant IA expert, amical et précis. Tu fonctionnes sur l'appareil de l'utilisateur. Tu ne connais pas l'actualité récente, sauf quand on te donne des résultats de recherche.",
   "",
   "Règles de fond :",
   "- Réponds dans la langue de l'utilisateur, en français correct.",
@@ -366,16 +390,17 @@ const DEFAULT_SYSTEM = [
   "- Écris des paragraphes courts : 2 ou 3 phrases maximum.",
   "- Pour comparer plusieurs choses, utilise un tableau Markdown.",
   "- Mets le code dans un bloc ``` en indiquant le langage.",
+  "- Quand on te demande un jeu, une animation ou une page web, donne UNE SEULE page HTML complète (HTML, CSS et JavaScript dans le même fichier) dans un bloc ```html, jouable au clavier et au toucher, pour qu'elle puisse être testée directement dans le chat.",
   "- Quand c'est utile, termine par une ligne du type **💡 Astuce :** ou **✅ En résumé :**.",
   "- Pour une question simple (salut, oui ou non, petite question), réponds en une ou deux phrases, sans titres."
 ].join("\n");
-const OLD_DEFAULTS = ["Tu es Home Made Intelligence (HMI), un assistant IA utile", "Tu es Home Made Intelligence (HMI), un assistant IA expert, amical et précis. Tu fonctionnes entièrement sur l'appareil de l'utilisateur, sans internet : tu ne peux pas consulter"];
+const OLD_DEFAULTS = ["Tu es Home Made Intelligence (HMI), un assistant IA utile", "Tu es Home Made Intelligence (HMI), un assistant IA expert, amical et précis. Tu fonctionnes entièrement sur l'appareil de l'utilisateur, sans internet : tu ne connais pas", "Tu es Home Made Intelligence (HMI), un assistant IA expert, amical et précis. Tu fonctionnes entièrement sur l'appareil de l'utilisateur, sans internet : tu ne peux pas consulter"];
 
 /* Téléphones : moins de mémoire graphique → contexte plus court pour éviter les plantages */
 const IS_MOBILE = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Mac/.test(navigator.platform));
 const CTX = IS_MOBILE ? 2048 : 4096;
-const HIST_CHARS = IS_MOBILE ? 3500 : 7000;
-const MAX_TOKENS = IS_MOBILE ? 800 : 1500;
+const HIST_CHARS = IS_MOBILE ? 2000 : 5500;
+const MAX_TOKENS = IS_MOBILE ? 1000 : 1800;
 
 const LS_CHATS = "hmi_chats_v1", LS_SET = "hmi_settings_v1";
 const $ = s => document.querySelector(s);
@@ -422,14 +447,21 @@ function md(text) {
 }
 function enhanceCode(el) {
   el.querySelectorAll("pre").forEach(pre => {
-    if (pre.querySelector(".copy-code")) return;
+    if (pre.querySelector(".code-actions")) return;
     const code = pre.querySelector("code");
-    const lang = (code?.className.match(/language-([\w+#-]+)/) || [])[1];
+    const lang = (code?.className.match(/language-([\w+#-]+)/) || [])[1] || "";
     pre.dataset.lang = lang || "code";
-    const b = document.createElement("button");
-    b.className = "copy-code"; b.textContent = "Copier";
-    b.onclick = () => copyText((code || pre).innerText, b);
-    pre.appendChild(b);
+    const bar = document.createElement("div"); bar.className = "code-actions";
+    const src = () => (code || pre).textContent;
+    if (isRunnable(lang, src())) {
+      const r = document.createElement("button"); r.className = "run"; r.textContent = "▶ Tester";
+      r.onclick = () => runCode(pre, src(), lang);
+      bar.appendChild(r);
+    }
+    const b = document.createElement("button"); b.textContent = "Copier";
+    b.onclick = () => copyText(src(), b);
+    bar.appendChild(b);
+    pre.appendChild(bar);
   });
   el.querySelectorAll("table").forEach(t => {
     if (t.parentElement.classList.contains("table-wrap")) return;
@@ -438,6 +470,90 @@ function enhanceCode(el) {
   });
   el.querySelectorAll("a").forEach(a => { a.target = "_blank"; a.rel = "noopener"; });
 }
+/* ---------- Tester le code directement dans le chat ---------- */
+function isRunnable(lang, code) {
+  if (/^(html?|xhtml|svg|js|javascript)$/i.test(lang)) return true;
+  return !lang && /^\s*<(!doctype|html|head|body|canvas|div|style|script)/i.test(code);
+}
+function buildDoc(code, lang) {
+  const head = '<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">';
+  if (/^(js|javascript)$/i.test(lang)) {
+    const safe = code.replace(/<\/script/gi, "<\\/script");
+    return head + '<style>body{font-family:system-ui;background:#0e0f13;color:#e8eaef;margin:12px}#log div{font-family:monospace;font-size:13px;padding:4px 0;border-bottom:1px solid #222;white-space:pre-wrap}</style><div id="log"></div>'
+      + '<script>const L=document.getElementById("log");const P=(...a)=>{const d=document.createElement("div");d.textContent=a.map(x=>typeof x==="object"?JSON.stringify(x):String(x)).join(" ");L.appendChild(d)};console.log=console.info=console.warn=console.error=P;onerror=m=>P("Erreur : "+m);<\/script>'
+      + "<script>" + safe + "<\/script>";
+  }
+  return /<html|<head|<body/i.test(code) ? code : head + code;
+}
+function makeFrame(code, lang) {
+  const f = document.createElement("iframe");
+  f.setAttribute("sandbox", "allow-scripts allow-pointer-lock allow-modals");
+  f.setAttribute("allow", "fullscreen; gamepad");
+  f.title = "Aperçu du code";
+  f.srcdoc = buildDoc(code, lang);
+  return f;
+}
+function runCode(pre, code, lang) {
+  const prev = pre.nextElementSibling;
+  if (prev?.classList.contains("runner")) { prev.remove(); return; }
+  const r = document.createElement("div"); r.className = "runner";
+  r.innerHTML = '<div class="runner-bar"><span>▶ Aperçu en direct</span><div><button data-a="reload" title="Relancer">↻</button><button data-a="full" title="Plein écran">⛶</button><button data-a="close" title="Fermer">✕</button></div></div>';
+  let f = makeFrame(code, lang); r.appendChild(f);
+  r.querySelector('[data-a="reload"]').onclick = () => { const n = makeFrame(code, lang); f.replaceWith(n); f = n; };
+  r.querySelector('[data-a="close"]').onclick = () => r.remove();
+  r.querySelector('[data-a="full"]').onclick = () => openFull(code, lang);
+  pre.after(r);
+  setTimeout(() => r.scrollIntoView({ behavior: "smooth", block: "nearest" }), 50);
+}
+function openFull(code, lang) {
+  const w = document.createElement("div"); w.className = "fullrun";
+  w.innerHTML = '<div class="runner-bar"><span>▶ Plein écran</span><div><button data-a="reload" title="Relancer">↻</button><button data-a="close" title="Fermer">✕</button></div></div>';
+  let f = makeFrame(code, lang); w.appendChild(f);
+  w.querySelector('[data-a="reload"]').onclick = () => { const n = makeFrame(code, lang); f.replaceWith(n); f = n; };
+  w.querySelector('[data-a="close"]').onclick = () => w.remove();
+  document.body.appendChild(w);
+  setTimeout(() => f.focus(), 100);
+}
+
+/* ---------- Recherche web (Wikipédia, gratuit et sans clé) ---------- */
+const STOP = new Set("le la les l un une des de du d à a au aux et ou en est sont c qu que qui quoi quel quelle quels quelles comment pourquoi combien où quand ce cette ces cet mon ma mes ton ta tes son sa ses sur pour par avec dans dis moi explique cherche recherche regarde trouve internet web wikipédia wikipedia en ligne peux tu me svp stp s il te plaît plait the what who is are of".split(" "));
+function keywords(q) {
+  const w = q.toLowerCase().replace(/['’]/g, " ").replace(/[^\p{L}\p{N}\s-]/gu, " ").split(/\s+/).filter(x => x && !STOP.has(x));
+  return (w.length ? w : q.split(/\s+/)).slice(0, 8).join(" ");
+}
+async function wikiSearch(q) {
+  const kw = keywords(q), lim = IS_MOBILE ? 550 : 1300;
+  for (const lang of ["fr", "en"]) {
+    try {
+      const base = `https://${lang}.wikipedia.org/w/api.php?format=json&origin=*`;
+      const s = await (await fetch(`${base}&action=query&list=search&srlimit=3&srsearch=${encodeURIComponent(kw)}`)).json();
+      const titles = (s.query?.search || []).map(h => h.title);
+      if (!titles.length) continue;
+      const e = await (await fetch(`${base}&action=query&prop=extracts&exintro=1&explaintext=1&exlimit=3&titles=${encodeURIComponent(titles.join("|"))}`)).json();
+      const pages = Object.values(e.query?.pages || {});
+      const out = titles.map(t => pages.find(p => p.title === t)).filter(p => p && p.extract)
+        .map(p => ({ title: p.title, url: `https://${lang}.wikipedia.org/wiki/${encodeURIComponent(p.title.replace(/ /g, "_"))}`, text: p.extract.slice(0, lim) }));
+      if (out.length) return out;
+    } catch (err) { console.warn("Recherche impossible", err); }
+  }
+  return [];
+}
+
+/* ---------- Outils : mode image / recherche ---------- */
+let currentMode = null;
+function setMode(m) {
+  currentMode = m;
+  const c = $("#modeChip");
+  c.classList.toggle("on", !!m);
+  c.textContent = m === "image" ? "🎨 Image ✕" : m === "search" ? "🌐 Web ✕" : "";
+  input.placeholder = m === "image" ? "Décris l'image" : m === "search" ? "Que chercher ?" : "Demande à HMI";
+}
+function detectMode(t) {
+  if (/^\s*(peux-tu\s+|tu peux\s+)?(génère|générer|genere|crée|créer|cree|dessine|dessiner|fais|fait|faire)(-moi|\s+moi)?\s+(une?\s+)?(belle\s+|jolie\s+|petite\s+)?(image|photo|dessin|illustration|logo|fond d'écran|wallpaper)\b/i.test(t)) return "image";
+  if (/\b(cherche|recherche|regarde|trouve)\b.*\b(internet|web|wikip[ée]dia|en ligne)\b/i.test(t)) return "search";
+  return null;
+}
+
 function copyText(t, btn) {
   const done = () => { if (btn) { const o = btn.innerHTML; btn.textContent = "✓ Copié"; setTimeout(() => btn.innerHTML = o, 1200); } };
   if (navigator.clipboard) navigator.clipboard.writeText(t).then(done, () => fallbackCopy(t, done));
@@ -596,7 +712,7 @@ function projectMenu(p, anchor) {
 const SUGGESTIONS = [
   ["💡", "Explique-moi comment fonctionne un trou noir, simplement"],
   ["✉️", "Aide-moi à écrire un e-mail poli pour demander un rendez-vous"],
-  ["🎮", "Donne-moi 5 idées de jeux vidéo originaux à créer"],
+  ["🎨", "Crée une image d'un chat astronaute sur la Lune", "image"],
   ["💻", "Code un petit jeu en JavaScript dans une page HTML"],
 ];
 function greeting() {
@@ -607,14 +723,14 @@ function welcomeHTML() {
   const proj = projects.find(p => p.id === pendingProject);
   return `<div class="welcome">${proj ? `<div class="proj-badge">📁 Nouvelle discussion dans « ${esc(proj.name)} »</div>` : ""}<h1 class="grad-text">${greeting()} !</h1><h2>Comment je peux t'aider ?</h2>
   <div class="chips">${SUGGESTIONS.map((s, i) => `<button class="chip" data-i="${i}"><span>${esc(s[1])}</span><span class="ico">${s[0]}</span></button>`).join("")}</div>
-  <div class="privacy">🔒 Tout reste sur ton appareil : pas de serveur, pas de compte.</div></div>`;
+  <div class="privacy">🔒 Tes discussions restent sur ton appareil. Touche ＋ pour créer des images ou chercher sur le web.</div></div>`;
 }
 
 function msgEl(m, isLast) {
   const d = document.createElement("div");
   d.className = "msg " + m.role;
   if (m.role === "user") {
-    const b = document.createElement("div"); b.className = "bubble"; b.textContent = m.content; d.appendChild(b);
+    const b = document.createElement("div"); b.className = "bubble"; b.textContent = (m.mode === "image" ? "🎨 " : m.mode === "search" ? "🌐 " : "") + m.content; d.appendChild(b);
     return d;
   }
   const live = generating && isLast;
@@ -622,6 +738,19 @@ function msgEl(m, isLast) {
   const content = d.querySelector(".content"), body = d.querySelector(".body");
   if (!m.content && live) content.innerHTML = `<span class="thinking">${loadingModel ? "Réveil du cerveau…" : "Réflexion…"}</span>`;
   else { content.innerHTML = md(m.content); enhanceCode(content); }
+  if (m.image) {
+    const g = document.createElement("div"); g.className = "gen-img";
+    g.innerHTML = `<img alt=""><div class="img-actions"><a target="_blank" rel="noopener">⬇️ Ouvrir / enregistrer</a></div>`;
+    g.querySelector("img").src = m.image; g.querySelector("img").alt = m.imgPrompt || "Image générée";
+    g.querySelector("a").href = m.image;
+    body.appendChild(g);
+  }
+  if (m.sources?.length) {
+    const sd = document.createElement("div"); sd.className = "sources";
+    sd.innerHTML = '<span class="lab">Sources</span>';
+    m.sources.forEach((x, i) => { const a = document.createElement("a"); a.className = "src"; a.href = x.url; a.target = "_blank"; a.rel = "noopener"; a.innerHTML = `<b>${i + 1}</b>`; a.append(x.title); sd.appendChild(a); });
+    body.appendChild(sd);
+  }
   if (m.content && !live) {
     const a = document.createElement("div"); a.className = "actions";
     a.innerHTML = `<button title="Copier">${ICON.copy}</button><button title="Lire à voix haute">${ICON.speak}</button>${isLast ? `<button title="Régénérer">${ICON.redo}</button>` : ""}`;
@@ -639,7 +768,7 @@ function renderMessages() {
   inner.innerHTML = "";
   if (!chat || !chat.messages.length) {
     inner.innerHTML = welcomeHTML();
-    inner.querySelectorAll(".chip").forEach(b => b.onclick = () => send(SUGGESTIONS[b.dataset.i][1]));
+    inner.querySelectorAll(".chip").forEach(b => b.onclick = () => { const sg = SUGGESTIONS[b.dataset.i]; setMode(sg[2] || null); send(sg[1]); });
     return;
   }
   chat.messages.forEach((m, i) => inner.appendChild(msgEl(m, i === chat.messages.length - 1)));
@@ -744,15 +873,18 @@ async function send(text) {
     chats.unshift(chat); currentId = chat.id;
   }
   if (!chat.messages.length) chat.title = text.replace(/\s+/g, " ").slice(0, 42) + (text.length > 42 ? "…" : "");
-  chat.messages.push({ role: "user", content: text });
+  const mode = currentMode || detectMode(text);
+  chat.messages.push(mode ? { role: "user", content: text, mode } : { role: "user", content: text });
+  setMode(null);
   chat.updated = Date.now();
   input.value = ""; autosize(); saveChats(); renderSidebar();
   await generate(chat);
 }
 
-async function runCompletion(chat, asst, prefix) {
+async function runCompletion(chat, asst, prefix, searchCtx) {
   const eng = await ensureEngine();
-  const history = trimHistory(chat.messages.slice(0, -1).filter(m => !m.error));
+  let history = trimHistory(chat.messages.slice(0, -1).filter(m => !m.error).map(m => m.image ? { role: m.role, content: `(Image créée : ${m.imgPrompt || "image"})` } : m));
+  if (searchCtx) history = [{ role: "user", content: searchCtx }];
   const msgs = [{ role: "system", content: settings.system || DEFAULT_SYSTEM }, ...history];
   const stream = await eng.chat.completions.create({ messages: msgs, stream: true, temperature: Number(settings.temp), max_tokens: MAX_TOKENS });
   for await (const chunk of stream) {
@@ -762,14 +894,26 @@ async function runCompletion(chat, asst, prefix) {
 }
 
 async function generate(chat) {
+  const mode = chat.messages.at(-1)?.mode;
+  if (mode === "image") return makeImage(chat);
   const asst = { role: "assistant", content: "" };
   chat.messages.push(asst);
   setGenerating(true); renderMessages();
   if (titlePromise) await titlePromise;
-  let notice = "";
+  let notice = "", searchCtx = null;
   try {
+    if (mode === "search") {
+      setThinkingLabel("Recherche sur le web…");
+      const q = chat.messages.at(-2).content;
+      const res = await wikiSearch(q);
+      if (res.length) {
+        asst.sources = res.map(({ title, url }) => ({ title, url }));
+        searchCtx = `Question : ${q}\n\nInformations trouvées sur Wikipédia (appuie-toi dessus pour répondre et cite les sources avec [1], [2]…) :\n\n` + res.map((r, i) => `[${i + 1}] ${r.title}\n${r.text}`).join("\n\n");
+      } else notice = "> 🔎 Je n'ai rien trouvé en ligne, je réponds avec mes connaissances.\n\n";
+      setThinkingLabel("Réflexion…");
+    }
     for (let attempt = 0; ; attempt++) {
-      try { await runCompletion(chat, asst, notice); break; }
+      try { await runCompletion(chat, asst, notice, searchCtx); break; }
       catch (e) {
         if (!isGpuLost(e) || asst.content || attempt >= 2) throw e;
         console.warn("Moteur perdu, redémarrage…", e);
@@ -804,6 +948,41 @@ async function generate(chat) {
       chat.titled = true;
       titlePromise = autoTitle(chat).finally(() => { titlePromise = null; });
     }
+  }
+}
+
+/* ---------- Création d'images (service gratuit Pollinations, sans compte) ---------- */
+async function makeImage(chat) {
+  const prompt = chat.messages.at(-1).content;
+  const asst = { role: "assistant", content: "", imgPrompt: prompt };
+  chat.messages.push(asst);
+  setGenerating(true); renderMessages(); setThinkingLabel("Création de l'image…");
+  try {
+    let p = prompt.replace(/^\s*(peux-tu\s+|tu peux\s+)?(génère|générer|genere|crée|créer|cree|dessine|dessiner|fais|fait|faire)(-moi|\s+moi)?\s+(une?\s+)?(belle\s+|jolie\s+|petite\s+)?(image|photo|dessin|illustration)\s*(de\s+|d'|du\s+|des\s+)?/i, "").trim() || prompt;
+    if (engine && loadedModel === settings.model) {
+      try {
+        const r = await engine.chat.completions.create({ messages: [
+          { role: "system", content: "You write short, vivid English prompts for an image generator." },
+          { role: "user", content: `Translate and enrich this into ONE English image prompt (max 35 words, no quotes, no explanation): ${p}` },
+        ], temperature: 0.4, max_tokens: 70, stream: false });
+        const t = (r.choices?.[0]?.message?.content || "").split("\n")[0].replace(/^[\s"'«»*]+|[\s"'«»*]+$/g, "");
+        if (t.length > 5) p = t;
+      } catch {}
+    }
+    const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(p)}?width=1024&height=1024&nologo=true&seed=${Math.floor(Math.random() * 1e9)}`;
+    await new Promise((ok, ko) => {
+      const im = new Image(); const to = setTimeout(() => ko(new Error("timeout")), 120000);
+      im.onload = () => { clearTimeout(to); ok(); }; im.onerror = () => { clearTimeout(to); ko(new Error("img")); };
+      im.src = url;
+    });
+    asst.image = url;
+    asst.content = "Voici ton image 🎨";
+  } catch (e) {
+    asst.error = true;
+    asst.content = "⚠️ **Impossible de créer l'image pour le moment.**\n\nLe service d'images gratuit est peut-être surchargé, ou ta connexion internet est coupée. Réessaie dans un instant avec ↻.";
+  } finally {
+    chat.updated = Date.now();
+    setGenerating(false); saveChats(); renderMessages(); renderSidebar();
   }
 }
 
@@ -872,6 +1051,14 @@ $("#menuBtn").onclick = () => { $("#sidebar").classList.add("open"); $("#scrim")
 $("#scrim").onclick = closeSidebar;
 $("#newChat").onclick = () => newChat();
 $("#newChatTop").onclick = () => newChat();
+$("#modeChip").onclick = () => { setMode(null); input.focus(); };
+$("#plusBtn").onclick = e => {
+  e.stopPropagation();
+  showMenu(e.currentTarget, [
+    { text: "🎨  Créer une image", act: () => { setMode("image"); input.focus(); } },
+    { text: "🌐  Rechercher sur le web", act: () => { setMode("search"); input.focus(); } },
+  ]);
+};
 $("#search").addEventListener("input", e => { searchQ = e.target.value; renderSidebar(); });
 
 /* ---------- Réglages ---------- */
