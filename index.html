@@ -165,6 +165,8 @@ button{font:inherit;color:inherit}
 .src b{color:var(--g3);margin-right:4px}
 .mode-chip{display:none;align-items:center;align-self:center;background:color-mix(in srgb,var(--g3) 20%,transparent);color:var(--text);border:none;border-radius:999px;padding:7px 11px;font-size:13px;font-weight:600;white-space:nowrap;flex-shrink:0;cursor:pointer;margin-right:4px}
 .mode-chip.on{display:inline-flex}
+.msg.auto{justify-content:center;margin:-8px 0 20px}
+.auto-note{font-size:13px;color:var(--muted);background:var(--surface);border-radius:999px;padding:7px 14px;text-align:center}
 .cursor>*:last-child::after,.cursor:empty::after{content:"";display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--grad);margin-left:6px;vertical-align:middle;animation:pulse 1s ease-in-out infinite}
 @keyframes pulse{50%{transform:scale(.5);opacity:.5}}
 .thinking{display:inline-block;font-weight:500;background:linear-gradient(90deg,var(--muted) 0%,var(--muted) 35%,var(--g2) 50%,var(--muted) 65%,var(--muted) 100%);background-size:250% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:shimmer 1.8s linear infinite;padding-top:3px}
@@ -344,6 +346,10 @@ input[type=range]{width:100%;accent-color:var(--g2)}
       <div class="help"><a href="#" id="resetSys" style="color:var(--g2)">Remettre la personnalité par défaut</a></div>
     </div>
     <div class="field row">
+      <label class="t" style="margin:0">💻 Cerveau Codeur automatique pour le code</label>
+      <label class="switch"><input type="checkbox" id="autoCode"><i></i></label>
+    </div>
+    <div class="field row">
       <label class="t" style="margin:0">Lire les réponses à voix haute</label>
       <label class="switch"><input type="checkbox" id="voice"><i></i></label>
     </div>
@@ -372,10 +378,24 @@ const MODELS = [
   { id: "Qwen2.5-1.5B-Instruct-q4f16_1-MLC", name: "Malin",     desc: "~1 Go · très bon en français", rec: true },
   { id: "Llama-3.2-3B-Instruct-q4f16_1-MLC", name: "Puissant",  desc: "~1,8 Go · plus intelligent, ordinateur conseillé" },
   { id: "Phi-3.5-mini-instruct-q4f16_1-MLC", name: "Expert",    desc: "~2,2 Go · raisonnement et code, ordinateur conseillé" },
+  { id: "Qwen2.5-Coder-1.5B-Instruct-q4f16_1-MLC", name: "Codeur", desc: "~1 Go · spécialiste du code, marche sur téléphone", coder: true },
+  { id: "Qwen2.5-Coder-7B-Instruct-q4f16_1-MLC",   name: "Codeur Pro", desc: "~5 Go · le meilleur en code · ordinateur avec bonne carte graphique", heavy: true, coder: true },
   { id: "Qwen2.5-7B-Instruct-q4f16_1-MLC",   name: "Génie",     desc: "~5 Go · le plus intelligent, excellent en français · ordinateur avec bonne carte graphique", heavy: true },
   { id: "Llama-3.1-8B-Instruct-q4f16_1-MLC", name: "Titan",     desc: "~5 Go · très bonne culture générale · ordinateur avec bonne carte graphique", heavy: true },
 ];
 const LIGHT_ID = "Qwen2.5-0.5B-Instruct-q4f16_1-MLC";
+const CODER_ID = "Qwen2.5-Coder-1.5B-Instruct-q4f16_1-MLC", CODER_PRO_ID = "Qwen2.5-Coder-7B-Instruct-q4f16_1-MLC", CODER_LIGHT_ID = "Qwen2.5-Coder-0.5B-Instruct-q4f16_1-MLC";
+const CODE_RULES = [
+  "",
+  "MODE DÉVELOPPEUR EXPERT :",
+  "- Tu es un développeur senior. Ton code doit marcher du premier coup.",
+  "- Avant le code, écris le plan en 2 ou 3 lignes (structure, fonctions, données).",
+  "- Donne TOUJOURS le code complet : jamais de « ... », de « reste du code ici » ni de partie à compléter.",
+  "- JavaScript moderne (const, let, fonctions fléchées), noms clairs, quelques commentaires utiles.",
+  "- Pour un jeu : une seule page HTML avec un <canvas> qui s'adapte à l'écran, une boucle requestAnimationFrame, des contrôles clavier ET tactiles, un score, un écran de fin et un bouton pour rejouer.",
+  "- Avant de répondre, vérifie chaque variable et chaque fonction : aucune variable non définie, aucune fonction manquante, aucune faute de frappe.",
+  "- Si on te signale une erreur, explique la cause en une phrase, puis redonne le code complet corrigé."
+].join("\n");
 
 const DEFAULT_SYSTEM = [
   "Tu es Home Made Intelligence (HMI), un assistant IA expert, amical et précis. Tu fonctionnes sur l'appareil de l'utilisateur. Tu ne connais pas l'actualité récente, sauf quand on te donne des résultats de recherche.",
@@ -400,9 +420,10 @@ const OLD_DEFAULTS = ["Tu es Home Made Intelligence (HMI), un assistant IA utile
 
 /* Téléphones : moins de mémoire graphique → contexte plus court pour éviter les plantages */
 const IS_MOBILE = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Mac/.test(navigator.platform));
-const CTX = IS_MOBILE ? 2048 : 4096;
+const CTX = IS_MOBILE ? 3072 : 4096;
 const HIST_CHARS = IS_MOBILE ? 2000 : 5500;
 const MAX_TOKENS = IS_MOBILE ? 1000 : 1800;
+const MAX_CODE_TOKENS = IS_MOBILE ? 1700 : 2400;
 
 const LS_CHATS = "hmi_chats_v1", LS_SET = "hmi_settings_v1";
 const $ = s => document.querySelector(s);
@@ -419,7 +440,7 @@ const ICON = {
   redo: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15.5-6.2L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15.5 6.2L3 16"/><path d="M3 21v-5h5"/></svg>',
 };
 
-let settings = Object.assign({ model: "Qwen2.5-1.5B-Instruct-q4f16_1-MLC", temp: 0.7, system: DEFAULT_SYSTEM, voice: false, theme: "auto" }, load(LS_SET, {}));
+let settings = Object.assign({ model: "Qwen2.5-1.5B-Instruct-q4f16_1-MLC", temp: 0.7, system: DEFAULT_SYSTEM, voice: false, theme: "auto", autoCode: true }, load(LS_SET, {}));
 if (!MODELS.some(m => m.id === settings.model)) settings.model = MODELS[3].id;
 if (!settings.system || OLD_DEFAULTS.some(o => settings.system.startsWith(o))) settings.system = DEFAULT_SYSTEM;
 let chats = load(LS_CHATS, []);
@@ -541,14 +562,54 @@ async function wikiSearch(q) {
   return [];
 }
 
+/* ---------- Mode code : cerveau Codeur + test automatique ---------- */
+function looksLikeCode(t) {
+  return /```|\b(code|coder|codé|programme|programmer|script|html|css|javascript|typescript|python|java|php|sql|react|fonction|algorithme|bug|débogue|debug|compile)\b/i.test(t)
+    || /\b(crée|créer|cree|fais|faire|fait|développe|code|programme)\b.*\b(jeu|site|appli|application|page web|calculatrice|outil|animation)\b/i.test(t);
+}
+function pickModel(isCode) {
+  if (!isCode) return settings.model;
+  const cur = MODELS.find(m => m.id === settings.model) || {};
+  if (cur.coder) return cur.id;
+  if (!settings.autoCode) return settings.model;
+  return cur.heavy && !IS_MOBILE ? CODER_PRO_ID : CODER_ID;
+}
+function extractHtml(text) {
+  const re = /```([\w-]*)[^\n]*\n([\s\S]*?)```/g; let m, last = null;
+  while ((m = re.exec(text))) {
+    const lang = m[1].toLowerCase(), code = m[2];
+    if (/^html?$/.test(lang) || (!lang && /^\s*<(!doctype|html)/i.test(code))) last = code;
+  }
+  return last;
+}
+/* Lance le code en cachette et récupère les erreurs JavaScript, comme un développeur qui teste son jeu */
+function testHtml(code) {
+  return new Promise(res => {
+    const id = Math.random().toString(36).slice(2), errs = [];
+    const f = document.createElement("iframe");
+    f.setAttribute("sandbox", "allow-scripts");
+    f.style.cssText = "position:fixed;left:-10000px;top:0;width:420px;height:640px;opacity:0;pointer-events:none";
+    const on = e => { if (e.data && e.data.hmiTest === id && e.data.err) errs.push(e.data.err); };
+    addEventListener("message", on);
+    const probe = `<script>(function(){var I="${id}";function s(m){parent.postMessage({hmiTest:I,err:String(m).slice(0,300)},"*")}window.onerror=function(m,u,l){s(m+(l?" (ligne "+l+")":""))};addEventListener("unhandledrejection",function(e){s("Promesse rejetée : "+(e.reason&&e.reason.message||e.reason))})})();<\/script>`;
+    let doc = buildDoc(code, "html");
+    if (/<head[^>]*>/i.test(doc)) doc = doc.replace(/<head[^>]*>/i, m => m + probe);
+    else if (/<html[^>]*>/i.test(doc)) doc = doc.replace(/<html[^>]*>/i, m => m + probe);
+    else doc = probe + doc;
+    f.srcdoc = doc;
+    document.body.appendChild(f);
+    setTimeout(() => { removeEventListener("message", on); f.remove(); res(errs[0] || null); }, 2500);
+  });
+}
+
 /* ---------- Outils : mode image / recherche ---------- */
 let currentMode = null;
 function setMode(m) {
   currentMode = m;
   const c = $("#modeChip");
   c.classList.toggle("on", !!m);
-  c.textContent = m === "image" ? "🎨 Image ✕" : m === "search" ? "🌐 Web ✕" : "";
-  input.placeholder = m === "image" ? "Décris l'image" : m === "search" ? "Que chercher ?" : "Demande à HMI";
+  c.textContent = m === "image" ? "🎨 Image ✕" : m === "search" ? "🌐 Web ✕" : m === "code" ? "💻 Code ✕" : "";
+  input.placeholder = m === "image" ? "Décris l'image" : m === "search" ? "Que chercher ?" : m === "code" ? "Que veux-tu coder ?" : "Demande à HMI";
 }
 function detectMode(t) {
   if (/^\s*(peux-tu\s+|tu peux\s+)?(génère|générer|genere|crée|créer|cree|dessine|dessiner|fais|fait|faire)(-moi|\s+moi)?\s+(une?\s+)?(belle\s+|jolie\s+|petite\s+)?(image|photo|dessin|illustration|logo|fond d'écran|wallpaper)\b/i.test(t)) return "image";
@@ -738,8 +799,15 @@ function welcomeHTML() {
 function msgEl(m, isLast) {
   const d = document.createElement("div");
   d.className = "msg " + m.role;
+  if (m.role === "user" && m.auto) {
+    d.className = "msg auto";
+    const n = document.createElement("div"); n.className = "auto-note";
+    n.textContent = "🔧 Test automatique : une erreur a été trouvée, HMI corrige son code…";
+    n.title = m.content; d.appendChild(n);
+    return d;
+  }
   if (m.role === "user") {
-    const b = document.createElement("div"); b.className = "bubble"; b.textContent = (m.mode === "image" ? "🎨 " : m.mode === "search" ? "🌐 " : "") + m.content; d.appendChild(b);
+    const b = document.createElement("div"); b.className = "bubble"; b.textContent = (m.mode === "image" ? "🎨 " : m.mode === "search" ? "🌐 " : m.mode === "code" ? "💻 " : "") + m.content; d.appendChild(b);
     return d;
   }
   const live = generating && isLast;
@@ -810,7 +878,8 @@ function setThinkingLabel(t) {
 
 /* ---------- Statut ---------- */
 function updateStatus() {
-  const m = MODELS.find(x => x.id === settings.model);
+  const shown = (generating || loadingModel) && activeModel ? activeModel : settings.model;
+  const m = MODELS.find(x => x.id === shown) || { name: "Codeur" };
   const ready = engine && loadedModel === settings.model;
   $("#dot").className = "dot" + (generating || loadingModel ? " busy" : ready ? " ready" : "");
   $("#modelName").textContent = "HMI " + m.name;
@@ -836,22 +905,23 @@ function setProgress(p, text) {
   $("#pctText").textContent = pct + " %";
   $("#detail").textContent = text || "";
 }
-async function ensureEngine() {
-  if (engine && loadedModel === settings.model) return engine;
+let activeModel = null;
+async function ensureEngine(modelId = settings.model) {
+  if (engine && loadedModel === modelId) return engine;
   if (!navigator.gpu) throw new Error("NO_WEBGPU");
   if (IS_MOBILE) await freeImageModel();
   $("#loaderTitle").textContent = "Réveil de HMI…";
   loadingModel = true; updateStatus(); setThinkingLabel("Réveil du cerveau…");
   setProgress(0, "Préparation…");
-  $("#modelLoading").textContent = "HMI " + MODELS.find(m => m.id === settings.model).name;
+  $("#modelLoading").textContent = "HMI " + (MODELS.find(m => m.id === modelId)?.name || "Codeur");
   showLoader(true);
   try {
     if (!webllm) webllm = await import(WEBLLM_URL);
     const cb = r => setProgress(r.progress, r.text);
     const chatOpts = { context_window_size: CTX };
-    if (!engine) engine = await webllm.CreateMLCEngine(settings.model, { initProgressCallback: cb }, chatOpts);
-    else { engine.setInitProgressCallback(cb); await engine.reload(settings.model, chatOpts); }
-    loadedModel = settings.model;
+    if (!engine) engine = await webllm.CreateMLCEngine(modelId, { initProgressCallback: cb }, chatOpts);
+    else { engine.setInitProgressCallback(cb); await engine.reload(modelId, chatOpts); }
+    loadedModel = modelId;
     return engine;
   } finally {
     loadingModel = false; showLoader(false); updateStatus(); setThinkingLabel("Réflexion…");
@@ -889,6 +959,7 @@ async function send(text) {
   }
   if (!chat.messages.length) chat.title = text.replace(/\s+/g, " ").slice(0, 42) + (text.length > 42 ? "…" : "");
   const mode = currentMode || detectMode(text);
+  chat.fixes = 0;
   chat.messages.push(mode ? { role: "user", content: text, mode } : { role: "user", content: text });
   setMode(null);
   chat.updated = Date.now();
@@ -896,12 +967,12 @@ async function send(text) {
   await generate(chat);
 }
 
-async function runCompletion(chat, asst, prefix, searchCtx) {
-  const eng = await ensureEngine();
+async function runCompletion(chat, asst, prefix, searchCtx, modelId, isCode) {
+  const eng = await ensureEngine(modelId);
   let history = trimHistory(chat.messages.slice(0, -1).filter(m => !m.error).map(m => m.image ? { role: m.role, content: `(Image créée : ${m.imgPrompt || "image"})` } : m));
   if (searchCtx) history = [{ role: "user", content: searchCtx }];
-  const msgs = [{ role: "system", content: settings.system || DEFAULT_SYSTEM }, ...history];
-  const stream = await eng.chat.completions.create({ messages: msgs, stream: true, temperature: Number(settings.temp), max_tokens: MAX_TOKENS });
+  const msgs = [{ role: "system", content: (settings.system || DEFAULT_SYSTEM) + (isCode ? "\n" + CODE_RULES : "") }, ...history];
+  const stream = await eng.chat.completions.create({ messages: msgs, stream: true, temperature: isCode ? 0.2 : Number(settings.temp), max_tokens: isCode ? MAX_CODE_TOKENS : MAX_TOKENS });
   for await (const chunk of stream) {
     const delta = chunk.choices?.[0]?.delta?.content || "";
     if (delta) { asst.content += delta; updateLast(prefix + asst.content); }
@@ -909,10 +980,15 @@ async function runCompletion(chat, asst, prefix, searchCtx) {
 }
 
 async function generate(chat) {
-  const mode = chat.messages.at(-1)?.mode;
+  const userMsg = chat.messages.at(-1) || {};
+  const mode = userMsg.mode;
   if (mode === "image") return makeImage(chat);
+  const isCode = mode === "code" || userMsg.auto || (mode !== "search" && looksLikeCode(userMsg.content || ""));
+  let modelId = pickModel(isCode);
+  activeModel = modelId;
   const asst = { role: "assistant", content: "" };
   chat.messages.push(asst);
+  stopped = false;
   setGenerating(true); renderMessages();
   if (titlePromise) await titlePromise;
   let notice = "", searchCtx = null;
@@ -928,14 +1004,17 @@ async function generate(chat) {
       setThinkingLabel("Réflexion…");
     }
     for (let attempt = 0; ; attempt++) {
-      try { await runCompletion(chat, asst, notice, searchCtx); break; }
+      try { await runCompletion(chat, asst, notice, searchCtx, modelId, isCode); break; }
       catch (e) {
         if (!isGpuLost(e) || asst.content || attempt >= 2) throw e;
         console.warn("Moteur perdu, redémarrage…", e);
         await resetEngine();
         const cur = MODELS.findIndex(m => m.id === settings.model), light = MODELS.findIndex(m => m.id === LIGHT_ID);
-        if (attempt === 1 && cur > light) {
-          settings.model = LIGHT_ID; store(LS_SET, settings);
+        if (attempt === 1 && modelId !== settings.model) {
+          modelId = activeModel = CODER_LIGHT_ID;
+          notice = "> ℹ️ Le cerveau Codeur était trop lourd pour cet appareil : j'utilise une version plus légère.\n\n";
+        } else if (attempt === 1 && cur > light) {
+          settings.model = modelId = activeModel = LIGHT_ID; store(LS_SET, settings);
           notice = "> ℹ️ Le cerveau choisi était trop lourd pour cet appareil : je suis passée sur **HMI Léger**. Tu peux changer dans ⚙️ Réglages.\n\n";
         }
       }
@@ -962,6 +1041,19 @@ async function generate(chat) {
     if (!asst.error && !chat.titled && engine && chat.messages.length === 2) {
       chat.titled = true;
       titlePromise = autoTitle(chat).finally(() => { titlePromise = null; });
+    }
+  }
+  /* Le code d'un jeu ou d'une page est testé en cachette ; s'il plante, HMI le corrige toute seule (2 essais max) */
+  if (isCode && !asst.error && !stopped) {
+    const html = extractHtml(asst.content);
+    if (html && (chat.fixes || 0) < 2) {
+      const err = await testHtml(html);
+      if (err && currentChat() === chat) {
+        chat.fixes = (chat.fixes || 0) + 1;
+        chat.messages.push({ role: "user", auto: true, mode: "code", content: `Quand je teste ton code, il y a cette erreur : ${err}\nCorrige le problème et redonne la page HTML complète, sans rien couper.` });
+        saveChats();
+        return generate(chat);
+      }
     }
   }
 }
@@ -1011,7 +1103,7 @@ async function makeImage(chat) {
   try {
     let p = prompt.replace(/^\s*(peux-tu\s+|tu peux\s+)?(génère|générer|genere|crée|créer|cree|dessine|dessiner|fais|fait|faire)(-moi|\s+moi)?\s+(une?\s+)?(belle\s+|jolie\s+|petite\s+)?(image|photo|dessin|illustration)\s*(de\s+|d'|du\s+|des\s+)?/i, "").trim() || prompt;
     /* Si le cerveau qui écrit est déjà chargé, il traduit la demande en anglais (le cerveau de dessin le comprend mieux) */
-    if (engine && loadedModel === settings.model) {
+    if (engine && loadedModel) {
       try {
         const r = await engine.chat.completions.create({ messages: [
           { role: "system", content: "You write short, vivid English prompts for an image generator." },
@@ -1062,7 +1154,8 @@ async function autoTitle(chat) {
   } catch (e) { console.warn("Titre auto impossible", e); }
 }
 
-function stop() { try { engine?.interruptGenerate(); } catch {} }
+let stopped = false;
+function stop() { stopped = true; try { engine?.interruptGenerate(); } catch {} }
 
 async function regenerate() {
   const chat = currentChat();
@@ -1116,6 +1209,7 @@ $("#plusBtn").onclick = e => {
   showMenu(e.currentTarget, [
     { text: "🎨  Dessiner une image", act: () => { setMode("image"); input.focus(); } },
     { text: "🌐  Rechercher sur le web", act: () => { setMode("search"); input.focus(); } },
+    { text: "💻  Mode code (cerveau Codeur)", act: () => { setMode("code"); input.focus(); } },
   ]);
 };
 $("#search").addEventListener("input", e => { searchQ = e.target.value; renderSidebar(); });
@@ -1126,6 +1220,7 @@ function openSettings() {
   $("#temp").value = settings.temp; $("#tempVal").textContent = settings.temp;
   $("#sys").value = settings.system;
   $("#voice").checked = !!settings.voice;
+  $("#autoCode").checked = settings.autoCode !== false;
   $("#theme").value = settings.theme;
   $("#settingsModal").classList.add("show"); closeSidebar();
 }
@@ -1145,6 +1240,7 @@ $("#saveSettings").onclick = () => {
   settings.temp = Number($("#temp").value);
   settings.system = $("#sys").value.trim() || DEFAULT_SYSTEM;
   settings.voice = $("#voice").checked;
+  settings.autoCode = $("#autoCode").checked;
   settings.theme = $("#theme").value;
   store(LS_SET, settings); applyTheme(); updateStatus();
   $("#settingsModal").classList.remove("show");
