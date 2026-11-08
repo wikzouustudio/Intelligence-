@@ -46,12 +46,33 @@ button{font:inherit;color:inherit}
 .chats{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:2px;margin:0 -4px;padding:0 4px}
 .chats h4{font-size:13px;color:var(--muted);margin:14px 12px 6px;font-weight:600}
 .chat-item{display:flex;align-items:center;gap:4px;padding:10px 12px;border-radius:999px;cursor:pointer;font-size:14px;transition:background .15s}
-.chat-item span{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chat-item .t{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .chat-item:hover{background:var(--hover)}
 .chat-item.active{background:color-mix(in srgb,var(--g2) 18%,transparent);font-weight:500}
-.chat-item .ic{opacity:0;border:none;background:none;color:var(--muted);cursor:pointer;padding:2px 5px;font-size:13px;border-radius:6px}
-.chat-item:hover .ic,.chat-item.active .ic{opacity:1}
-.empty-list{color:var(--muted);font-size:13px;padding:10px 12px}
+.chat-item .more{opacity:0;border:none;background:none;color:var(--muted);cursor:pointer;width:28px;height:28px;border-radius:50%;font-size:16px;line-height:1;flex-shrink:0;display:grid;place-items:center}
+.chat-item .more:hover{background:var(--surface2);color:var(--text)}
+.chat-item:hover .more,.chat-item.active .more{opacity:1}
+@media (hover:none){.chat-item .more{opacity:.8}}
+.chat-item .pin{font-size:11px;flex-shrink:0}
+.chat-item.proj{font-weight:500;border-radius:14px}
+.chat-item .chev{width:14px;color:var(--muted);font-size:11px;flex-shrink:0}
+.chat-item .count{font-size:12px;color:var(--muted);flex-shrink:0;padding:0 4px}
+.proj-chats{margin-left:16px;padding-left:8px;border-left:1px solid var(--border);display:flex;flex-direction:column;gap:2px;margin-bottom:4px}
+.empty-list{color:var(--muted);font-size:13px;padding:8px 12px;line-height:1.45}
+.sec-head{display:flex;align-items:center;justify-content:space-between;margin:14px 6px 4px 12px;font-size:13px;color:var(--muted);font-weight:600;min-height:28px}
+.sec-head button{border:none;background:none;color:var(--muted);cursor:pointer;font-size:17px;border-radius:50%;width:28px;height:28px}
+.sec-head button:hover{background:var(--hover);color:var(--text)}
+.search{display:flex;align-items:center;gap:8px;background:var(--bg);border-radius:999px;padding:0 14px;border:1px solid var(--border)}
+.search svg{width:17px;height:17px;color:var(--muted);flex-shrink:0}
+.search input{flex:1;min-width:0;border:none;outline:none;background:none;color:var(--text);font:inherit;font-size:16px;padding:10px 0}
+.search input::placeholder{color:var(--muted)}
+.menu{position:fixed;z-index:60;background:var(--bg);border:1px solid var(--border);border-radius:18px;padding:6px;min-width:220px;max-width:280px;max-height:70vh;overflow-y:auto;box-shadow:0 20px 50px #0007;animation:pop .15s ease}
+.menu button{display:block;width:100%;border:none;background:none;padding:10px 12px;border-radius:12px;font-size:14px;cursor:pointer;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.menu button:hover{background:var(--hover)}
+.menu .danger{color:#ef4444}
+.menu hr{border:none;border-top:1px solid var(--border);margin:5px 4px}
+.menu .lbl{font-size:12px;color:var(--muted);padding:6px 12px 3px;font-weight:600}
+.proj-badge{display:inline-flex;align-items:center;gap:6px;background:var(--surface);border-radius:999px;padding:6px 12px;font-size:13px;color:var(--muted);margin-bottom:16px}
 .side-btn{display:flex;align-items:center;gap:10px;border:none;background:none;padding:11px 14px;border-radius:999px;font-size:14px;cursor:pointer;text-align:left}
 .side-btn:hover{background:var(--hover)}
 
@@ -204,6 +225,7 @@ input[type=range]{width:100%;accent-color:var(--g2)}
   <aside class="sidebar" id="sidebar">
     <div class="brand"><svg class="spark"><use href="#spark"/></svg><div>Home Made Intelligence<small>100 % sur ton appareil</small></div></div>
     <button class="new-chat" id="newChat"><span class="plus">＋</span>Nouvelle discussion</button>
+    <label class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="search" type="search" placeholder="Rechercher" autocomplete="off"></label>
     <div class="chats" id="chats"></div>
     <button class="side-btn" id="openSettings">⚙️&nbsp; Réglages</button>
   </aside>
@@ -319,6 +341,10 @@ let settings = Object.assign({ model: "Qwen2.5-1.5B-Instruct-q4f16_1-MLC", temp:
 if (!MODELS.some(m => m.id === settings.model)) settings.model = MODELS[3].id;
 if (settings.system && settings.system.startsWith("Tu es Home Made Intelligence (HMI), un assistant IA utile")) settings.system = DEFAULT_SYSTEM;
 let chats = load(LS_CHATS, []);
+const LS_PROJ = "hmi_projects_v1";
+let projects = load(LS_PROJ, []);
+const saveProjects = () => store(LS_PROJ, projects);
+let searchQ = "", pendingProject = null, titlePromise = null;
 let currentId = null;
 let webllm = null, engine = null, loadedModel = null, generating = false, loadingModel = false;
 
@@ -366,12 +392,13 @@ function fallbackCopy(t, done) {
 const currentChat = () => chats.find(c => c.id === currentId);
 const saveChats = () => store(LS_CHATS, chats);
 
-function newChat() {
+function newChat(projectId = null) {
   if (generating) return;
   currentId = null;
+  pendingProject = projectId;
   renderAll(); closeSidebar(); input.focus();
 }
-function selectChat(id) { if (generating) return; currentId = id; renderAll(); closeSidebar(); }
+function selectChat(id) { if (generating) return; currentId = id; pendingProject = null; renderAll(); closeSidebar(); }
 function deleteChat(id) {
   if (generating) return;
   if (!confirm("Supprimer cette discussion ?")) return;
@@ -382,30 +409,128 @@ function deleteChat(id) {
 function renameChat(id) {
   const c = chats.find(x => x.id === id); if (!c) return;
   const t = prompt("Nouveau nom :", c.title);
-  if (t && t.trim()) { c.title = t.trim().slice(0, 60); saveChats(); renderSidebar(); }
+  if (t && t.trim()) { c.title = t.trim().slice(0, 60); c.titled = true; saveChats(); renderSidebar(); }
+}
+function createProject() {
+  const n = prompt("Nom du nouveau projet :");
+  if (!n || !n.trim()) return null;
+  const p = { id: uid(), name: n.trim().slice(0, 40), open: true };
+  projects.push(p); saveProjects(); renderSidebar();
+  return p;
 }
 
+/* ----- Organisation façon ChatGPT : projets, épinglées, dates, recherche ----- */
+function dateGroup(ts) {
+  const now = new Date(), start = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime(), day = 864e5;
+  if (ts >= start) return "Aujourd'hui";
+  if (ts >= start - day) return "Hier";
+  if (ts >= start - 7 * day) return "7 jours précédents";
+  if (ts >= start - 30 * day) return "30 jours précédents";
+  const s = new Date(ts).toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+function head(text, onAdd) {
+  const h = document.createElement("div"); h.className = "sec-head";
+  h.innerHTML = `<span></span>${onAdd ? '<button title="Nouveau projet" aria-label="Nouveau projet">＋</button>' : ""}`;
+  h.firstChild.textContent = text;
+  if (onAdd) h.querySelector("button").onclick = onAdd;
+  return h;
+}
+function emptyLine(text) { const e = document.createElement("div"); e.className = "empty-list"; e.textContent = text; return e; }
+function chatRow(c, showPin = true) {
+  const d = document.createElement("div");
+  d.className = "chat-item" + (c.id === currentId ? " active" : "");
+  d.innerHTML = `${c.pinned && showPin ? '<span class="pin">📌</span>' : ""}<span class="t"></span><button class="more" aria-label="Options">⋯</button>`;
+  d.querySelector(".t").textContent = c.title;
+  d.onclick = () => selectChat(c.id);
+  d.querySelector(".more").onclick = e => { e.stopPropagation(); chatMenu(c, e.currentTarget); };
+  return d;
+}
 function renderSidebar() {
   const list = $("#chats"); list.innerHTML = "";
   const used = chats.filter(c => c.messages.length).sort((a, b) => b.updated - a.updated);
-  if (!used.length) { list.innerHTML = '<div class="empty-list">Tes discussions apparaîtront ici.</div>'; return; }
-  const day = 864e5, now = Date.now(), groups = [["Aujourd'hui", []], ["7 derniers jours", []], ["Plus ancien", []]];
-  used.forEach(c => { const age = now - c.updated; (age < day ? groups[0] : age < 7 * day ? groups[1] : groups[2])[1].push(c); });
-  groups.forEach(([name, items]) => {
-    if (!items.length) return;
-    const h = document.createElement("h4"); h.textContent = name; list.appendChild(h);
-    items.forEach(c => {
-      const d = document.createElement("div");
-      d.className = "chat-item" + (c.id === currentId ? " active" : "");
-      d.innerHTML = `<span></span><button class="ic" title="Renommer">✏️</button><button class="ic" title="Supprimer">🗑</button>`;
-      d.querySelector("span").textContent = c.title;
-      d.onclick = () => selectChat(c.id);
-      const [r, x] = d.querySelectorAll(".ic");
-      r.onclick = e => { e.stopPropagation(); renameChat(c.id); };
-      x.onclick = e => { e.stopPropagation(); deleteChat(c.id); };
-      list.appendChild(d);
-    });
+  const q = searchQ.trim().toLowerCase();
+  if (q) {
+    const res = used.filter(c => c.title.toLowerCase().includes(q) || c.messages.some(m => m.content.toLowerCase().includes(q)));
+    list.appendChild(head(res.length ? `${res.length} résultat${res.length > 1 ? "s" : ""}` : "Aucun résultat"));
+    res.forEach(c => list.appendChild(chatRow(c)));
+    return;
+  }
+  list.appendChild(head("Projets", () => createProject()));
+  if (!projects.length) list.appendChild(emptyLine("Crée un projet avec ＋ pour ranger tes discussions."));
+  projects.forEach(p => {
+    const items = used.filter(c => c.project === p.id);
+    const row = document.createElement("div");
+    row.className = "chat-item proj";
+    row.innerHTML = `<span class="chev">${p.open ? "▾" : "▸"}</span><span class="t"></span><span class="count">${items.length || ""}</span><button class="more" aria-label="Options du projet">⋯</button>`;
+    row.querySelector(".t").textContent = "📁 " + p.name;
+    row.onclick = () => { p.open = !p.open; saveProjects(); renderSidebar(); };
+    row.querySelector(".more").onclick = e => { e.stopPropagation(); projectMenu(p, e.currentTarget); };
+    list.appendChild(row);
+    if (p.open) {
+      const wrap = document.createElement("div"); wrap.className = "proj-chats";
+      if (!items.length) wrap.appendChild(emptyLine("Vide — utilise ⋯ sur une discussion pour la déplacer ici."));
+      items.forEach(c => wrap.appendChild(chatRow(c)));
+      list.appendChild(wrap);
+    }
   });
+  const free = used.filter(c => !c.project || !projects.some(p => p.id === c.project));
+  const pinned = free.filter(c => c.pinned);
+  if (pinned.length) { list.appendChild(head("Épinglées")); pinned.forEach(c => list.appendChild(chatRow(c, false))); }
+  if (!used.length) { list.appendChild(head("Discussions")); list.appendChild(emptyLine("Tes discussions apparaîtront ici.")); return; }
+  let last = null;
+  free.filter(c => !c.pinned).forEach(c => {
+    const g = dateGroup(c.updated);
+    if (g !== last) { list.appendChild(head(g)); last = g; }
+    list.appendChild(chatRow(c));
+  });
+}
+
+/* ----- Menus ⋯ ----- */
+let openMenu = null;
+function closeMenu() { openMenu?.remove(); openMenu = null; }
+document.addEventListener("pointerdown", e => { if (openMenu && !openMenu.contains(e.target)) closeMenu(); }, true);
+window.addEventListener("resize", closeMenu);
+function showMenu(anchor, items) {
+  closeMenu();
+  const m = document.createElement("div"); m.className = "menu";
+  items.forEach(it => {
+    if (it === "-") { m.appendChild(document.createElement("hr")); return; }
+    if (it.label) { const l = document.createElement("div"); l.className = "lbl"; l.textContent = it.label; m.appendChild(l); return; }
+    const b = document.createElement("button"); b.textContent = it.text; if (it.danger) b.className = "danger";
+    b.onclick = e => { e.stopPropagation(); closeMenu(); it.act(); };
+    m.appendChild(b);
+  });
+  document.body.appendChild(m);
+  const r = anchor.getBoundingClientRect(), mw = m.offsetWidth, mh = m.offsetHeight;
+  let top = r.bottom + 4; if (top + mh > innerHeight - 8) top = Math.max(8, r.top - mh - 4);
+  m.style.left = Math.max(8, Math.min(r.right - mw, innerWidth - mw - 8)) + "px";
+  m.style.top = top + "px";
+  openMenu = m;
+}
+function chatMenu(c, anchor) {
+  const items = [
+    { text: c.pinned ? "📌  Désépingler" : "📌  Épingler", act: () => { c.pinned = !c.pinned; saveChats(); renderSidebar(); } },
+    { text: "✏️  Renommer", act: () => renameChat(c.id) },
+    "-", { label: "Déplacer vers un projet" },
+    ...projects.filter(p => p.id !== c.project).map(p => ({ text: "📁  " + p.name, act: () => { c.project = p.id; p.open = true; saveChats(); saveProjects(); renderSidebar(); } })),
+    { text: "＋  Nouveau projet…", act: () => { const p = createProject(); if (p) { c.project = p.id; saveChats(); renderSidebar(); } } },
+  ];
+  if (c.project) items.push({ text: "↩︎  Retirer du projet", act: () => { delete c.project; saveChats(); renderSidebar(); } });
+  items.push("-", { text: "🗑  Supprimer", danger: true, act: () => deleteChat(c.id) });
+  showMenu(anchor, items);
+}
+function projectMenu(p, anchor) {
+  showMenu(anchor, [
+    { text: "💬  Nouvelle discussion dans ce projet", act: () => newChat(p.id) },
+    { text: "✏️  Renommer le projet", act: () => { const n = prompt("Nom du projet :", p.name); if (n && n.trim()) { p.name = n.trim().slice(0, 40); saveProjects(); renderSidebar(); } } },
+    "-",
+    { text: "🗑  Supprimer le projet", danger: true, act: () => {
+      if (!confirm(`Supprimer le projet « ${p.name} » ? Les discussions qu'il contient sont gardées.`)) return;
+      chats.forEach(c => { if (c.project === p.id) delete c.project; });
+      projects = projects.filter(x => x !== p); saveProjects(); saveChats(); renderAll();
+    } },
+  ]);
 }
 
 const SUGGESTIONS = [
@@ -419,7 +544,8 @@ function greeting() {
   return h < 5 ? "Bonne nuit" : h < 18 ? "Bonjour" : "Bonsoir";
 }
 function welcomeHTML() {
-  return `<div class="welcome"><h1 class="grad-text">${greeting()} !</h1><h2>Comment je peux t'aider ?</h2>
+  const proj = projects.find(p => p.id === pendingProject);
+  return `<div class="welcome">${proj ? `<div class="proj-badge">📁 Nouvelle discussion dans « ${esc(proj.name)} »</div>` : ""}<h1 class="grad-text">${greeting()} !</h1><h2>Comment je peux t'aider ?</h2>
   <div class="chips">${SUGGESTIONS.map((s, i) => `<button class="chip" data-i="${i}"><span>${esc(s[1])}</span><span class="ico">${s[0]}</span></button>`).join("")}</div>
   <div class="privacy">🔒 Tout reste sur ton appareil : pas de serveur, pas de compte.</div></div>`;
 }
@@ -547,7 +673,12 @@ async function send(text) {
   text = (text || "").trim();
   if (!text || generating) return;
   let chat = currentChat();
-  if (!chat) { chat = { id: uid(), title: "Nouvelle discussion", messages: [], updated: Date.now() }; chats.unshift(chat); currentId = chat.id; }
+  if (!chat) {
+    chat = { id: uid(), title: "Nouvelle discussion", messages: [], updated: Date.now() };
+    if (pendingProject && projects.some(p => p.id === pendingProject)) chat.project = pendingProject;
+    pendingProject = null;
+    chats.unshift(chat); currentId = chat.id;
+  }
   if (!chat.messages.length) chat.title = text.replace(/\s+/g, " ").slice(0, 42) + (text.length > 42 ? "…" : "");
   chat.messages.push({ role: "user", content: text });
   chat.updated = Date.now();
@@ -570,6 +701,7 @@ async function generate(chat) {
   const asst = { role: "assistant", content: "" };
   chat.messages.push(asst);
   setGenerating(true); renderMessages();
+  if (titlePromise) await titlePromise;
   let notice = "";
   try {
     for (let attempt = 0; ; attempt++) {
@@ -604,7 +736,28 @@ async function generate(chat) {
     chat.updated = Date.now();
     setGenerating(false); saveChats(); renderMessages(); renderSidebar();
     if (settings.voice && !asst.error) speak(asst.content);
+    if (!asst.error && !chat.titled && engine && chat.messages.length === 2) {
+      chat.titled = true;
+      titlePromise = autoTitle(chat).finally(() => { titlePromise = null; });
+    }
   }
+}
+
+/* Titre automatique comme ChatGPT : l'IA résume la discussion en quelques mots */
+async function autoTitle(chat) {
+  try {
+    const q = chat.messages[0]?.content || "", a = chat.messages[1]?.content || "";
+    const r = await engine.chat.completions.create({
+      messages: [
+        { role: "system", content: "Tu écris des titres très courts pour des conversations." },
+        { role: "user", content: `Donne un titre de 2 à 5 mots, en français, qui résume cette conversation. Réponds uniquement avec le titre, sans guillemets.\n\nQuestion : ${q.slice(0, 400)}\nRéponse : ${a.slice(0, 400)}` },
+      ],
+      temperature: 0.2, max_tokens: 16, stream: false,
+    });
+    let t = (r.choices?.[0]?.message?.content || "").split("\n")[0];
+    t = t.replace(/^\s*(titre\s*:)?\s*/i, "").replace(/^[\s"'«»*#]+|[\s"'«»*#.!:]+$/g, "").trim();
+    if (t.length >= 2 && t.length <= 60) { chat.title = t; saveChats(); renderSidebar(); }
+  } catch (e) { console.warn("Titre auto impossible", e); }
 }
 
 function stop() { try { engine?.interruptGenerate(); } catch {} }
@@ -653,8 +806,9 @@ sendBtn.onclick = () => generating ? stop() : send(input.value);
 function closeSidebar() { $("#sidebar").classList.remove("open"); $("#scrim").classList.remove("show"); }
 $("#menuBtn").onclick = () => { $("#sidebar").classList.add("open"); $("#scrim").classList.add("show"); };
 $("#scrim").onclick = closeSidebar;
-$("#newChat").onclick = newChat;
-$("#newChatTop").onclick = newChat;
+$("#newChat").onclick = () => newChat();
+$("#newChatTop").onclick = () => newChat();
+$("#search").addEventListener("input", e => { searchQ = e.target.value; renderSidebar(); });
 
 /* ---------- Réglages ---------- */
 function openSettings() {
