@@ -422,7 +422,7 @@ input[type=range]{width:100%;accent-color:var(--g2)}
 </div>
 
 <script type="module">
-const APP_VERSION = "2026-11-08-1842";
+const APP_VERSION = "2026-11-08-1853";
 const WEBLLM_URL = "https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm/+esm";
 const TRANSFORMERS_URL = "https://cdn.jsdelivr.net/npm/@huggingface/transformers@3";
 const IMG_MODEL = "onnx-community/Janus-Pro-1B-ONNX";
@@ -1490,7 +1490,12 @@ $("#olTest").onclick = async () => {
     msg.textContent = `✅ Connecté : ${names.length} cerveau${names.length > 1 ? "x" : ""} trouvé${names.length > 1 ? "s" : ""}. Choisis-en un puis Enregistrer.`;
   } catch (e) {
     $("#olPull").style.display = "none";
-    msg.textContent = "❌ Impossible de joindre Ollama. Vérifie qu'il est lancé, que l'étape OLLAMA_ORIGINS est faite et qu'Ollama a été relancé, et autorise l'accès au réseau local si le navigateur le demande.";
+    /* Diagnostic : Ollama est-il lancé mais refuse HMI (autorisation), ou injoignable ? */
+    let running = false;
+    try { await fetch(base + "/", { mode: "no-cors", cache: "no-store" }); running = true; } catch {}
+    msg.innerHTML = running
+      ? "⚠️ <b>Ollama est bien lancé, mais il refuse HMI.</b> Relance l'installateur HMI PRO (il donne l'autorisation), ou fais l'étape OLLAMA_ORIGINS, puis <b>quitte et relance Ollama</b>."
+      : "❌ <b>HMI n'arrive pas à joindre Ollama.</b> Ouvre <b>http://localhost:11434</b> dans un nouvel onglet : si ça n'affiche pas « Ollama is running », c'est qu'Ollama n'est pas lancé. Si ça l'affiche, ton navigateur bloque l'accès : essaie avec <b>Chrome</b> ou <b>Edge</b>, et accepte « l'accès au réseau local » s'il le demande.";
   }
 };
 $("#temp").oninput = e => $("#tempVal").textContent = e.target.value;
