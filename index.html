@@ -9,6 +9,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="HMI">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
@@ -38,8 +40,8 @@ button{font:inherit;color:inherit}
 
 /* Spark */
 .spark{width:28px;height:28px;flex-shrink:0;display:block}
-.spark.spin{animation:spin 1.6s linear infinite}
-@keyframes spin{0%{transform:rotate(0) scale(1)}50%{transform:rotate(180deg) scale(.82)}100%{transform:rotate(360deg) scale(1)}}
+.spark.spin{animation:think 1.3s ease-in-out infinite}
+@keyframes think{0%,100%{transform:scale(1) translateY(0);filter:drop-shadow(0 0 0 transparent)}50%{transform:scale(.88) translateY(-2px);filter:drop-shadow(0 0 8px #a3e635)}}
 
 /* Sidebar */
 .sidebar{width:280px;background:var(--surface);display:flex;flex-direction:column;padding:14px 12px calc(14px + env(safe-area-inset-bottom));gap:12px;flex-shrink:0}
@@ -273,7 +275,13 @@ input[type=range]{width:100%;accent-color:var(--g2)}
     <linearGradient id="hmiGrad" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0" stop-color="#fde047"/><stop offset=".4" stop-color="#bef264"/><stop offset=".75" stop-color="#4ade80"/><stop offset="1" stop-color="#10b981"/>
     </linearGradient>
-    <symbol id="spark" viewBox="0 0 24 24"><path fill="url(#hmiGrad)" d="M12 1.5c.7 5.6 4.9 9.8 10.5 10.5-5.6.7-9.8 4.9-10.5 10.5C11.3 16.9 7.1 12.7 1.5 12 7.1 11.3 11.3 7.1 12 1.5z"/></symbol>
+    <!-- Logo HMI : une maison (Home Made) avec un réseau de neurones (Intelligence) -->
+    <symbol id="spark" viewBox="0 0 24 24">
+      <path d="M12 2.8 20.6 9.9v9.3a2.3 2.3 0 0 1-2.3 2.3H5.7a2.3 2.3 0 0 1-2.3-2.3V9.9Z" fill="url(#hmiGrad)" stroke="url(#hmiGrad)" stroke-width="1.8" stroke-linejoin="round"/>
+      <circle cx="12" cy="14.6" r="2.1" fill="#0b1020"/>
+      <path d="M12 12.5V9.8M9.9 15.8l-2.4 1.4M14.1 15.8l2.4 1.4" stroke="#0b1020" stroke-width="1.6" stroke-linecap="round"/>
+      <circle cx="12" cy="9.2" r="1.1" fill="#0b1020"/><circle cx="7" cy="17.5" r="1.1" fill="#0b1020"/><circle cx="17" cy="17.5" r="1.1" fill="#0b1020"/>
+    </symbol>
   </defs>
 </svg>
 
