@@ -422,7 +422,7 @@ input[type=range]{width:100%;accent-color:var(--g2)}
 </div>
 
 <script type="module">
-const APP_VERSION = "2026-11-08-1859";
+const APP_VERSION = "2026-11-08-1901";
 const WEBLLM_URL = "https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm/+esm";
 const TRANSFORMERS_URL = "https://cdn.jsdelivr.net/npm/@huggingface/transformers@3";
 const IMG_MODEL = "onnx-community/Janus-Pro-1B-ONNX";
@@ -1478,10 +1478,19 @@ document.querySelectorAll("[data-pull]").forEach(b => b.onclick = async () => {
 });
 
 $("#olTest").onclick = async () => {
-  const msg = $("#olMsg"), sel = $("#olModel"), base = ($("#olUrl").value.trim() || "http://localhost:11434").replace(/\/+$/, "");
+  const msg = $("#olMsg"), sel = $("#olModel");
+  let base = ($("#olUrl").value.trim() || "http://localhost:11434").replace(/\/+$/, "");
   msg.textContent = "Connexion…";
   try {
-    const names = await olList(base);
+    let names;
+    try { names = await olList(base); }
+    catch (first) {
+      /* Sur certains PC, « localhost » ne marche pas mais l'adresse 127.0.0.1 oui (ou l'inverse) */
+      const alt = base.includes("localhost") ? base.replace("localhost", "127.0.0.1") : base.replace("127.0.0.1", "localhost");
+      if (alt === base) throw first;
+      names = await olList(alt);
+      base = alt; $("#olUrl").value = alt;
+    }
     $("#olPull").style.display = "";
     if (!names.length) { sel.innerHTML = '<option value="">Aucun cerveau installé</option>'; msg.textContent = "✅ Ollama est connecté. Installe un cerveau avec un des boutons ci-dessous."; return; }
     const prev = sel.value || settings.olModel;
