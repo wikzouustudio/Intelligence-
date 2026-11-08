@@ -102,19 +102,32 @@ button{font:inherit;color:inherit}
 .msg.assistant .body{flex:1;min-width:0}
 .content{line-height:1.7;word-wrap:break-word;overflow-wrap:anywhere;font-size:16px}
 .content p{margin:0 0 .8em}.content>*:last-child{margin-bottom:0}
-.content h1,.content h2,.content h3{line-height:1.3;margin:1.2em 0 .5em;font-weight:600}
-.content h1{font-size:1.4em}.content h2{font-size:1.25em}.content h3{font-size:1.1em}
-.content ul,.content ol{padding-left:1.4em;margin:0 0 .8em}
-.content li{margin:.25em 0}
-.content strong{font-weight:600}
+.content h1,.content h2,.content h3,.content h4{line-height:1.3;margin:1.5em 0 .55em;font-weight:650;letter-spacing:-.01em}
+.content>h1:first-child,.content>h2:first-child,.content>h3:first-child{margin-top:.2em}
+.content h1{font-size:1.45em}
+.content h2{font-size:1.28em;padding-bottom:.35em;border-bottom:1px solid var(--border)}
+.content h3{font-size:1.14em}
+.content h4{font-size:1em;color:var(--muted)}
+.content ul,.content ol{padding-left:1.5em;margin:.2em 0 1em}
+.content li{margin:.45em 0;padding-left:.2em}
+.content li>p{margin:0 0 .3em}
+.content ul li::marker{color:var(--g2)}
+.content ol li::marker{color:var(--g2);font-weight:650}
+.content strong{font-weight:650;color:var(--text)}
+.content em{color:var(--muted)}
+.content hr{border:none;height:1px;background:linear-gradient(90deg,transparent,var(--border) 15%,var(--border) 85%,transparent);margin:1.6em 0}
 .content pre{position:relative;background:var(--code);color:#e5e7eb;padding:44px 16px 16px;border-radius:16px;overflow-x:auto;font-size:13.5px;line-height:1.55;border:1px solid #ffffff10}
 .content pre::before{content:attr(data-lang);position:absolute;top:12px;left:16px;font-size:12px;color:#9aa0ab;font-family:"Figtree",sans-serif}
 .content code{font-family:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.88em}
 .content :not(pre)>code{background:var(--surface2);padding:2px 6px;border-radius:6px}
-.content table{border-collapse:collapse;display:block;overflow-x:auto;margin-bottom:.8em;border-radius:12px}
-.content th,.content td{border:1px solid var(--border);padding:8px 12px;text-align:left}
-.content th{background:var(--surface)}
-.content blockquote{border-left:3px solid var(--g2);margin:0 0 .8em;padding:2px 0 2px 14px;color:var(--muted)}
+.table-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:16px;margin:.4em 0 1.1em;-webkit-overflow-scrolling:touch}
+.content table{border-collapse:collapse;width:100%;font-size:.93em}
+.content th,.content td{padding:11px 14px;text-align:left;border-bottom:1px solid var(--border);vertical-align:top}
+.content th{background:var(--surface);font-weight:650;white-space:nowrap}
+.content tr:last-child td{border-bottom:none}
+.content td:first-child{font-weight:500}
+.content blockquote{background:var(--surface);border-left:3px solid var(--g2);margin:.4em 0 1em;padding:12px 16px;border-radius:0 14px 14px 0;color:var(--text)}
+.content blockquote p{margin:0}
 .content a{color:var(--g1)}
 .copy-code{position:absolute;top:8px;right:8px;font-size:12px;border:none;border-radius:8px;padding:5px 10px;background:#ffffff14;color:#e5e7eb;cursor:pointer}
 .copy-code:hover{background:#ffffff26}
@@ -314,7 +327,25 @@ const MODELS = [
 ];
 const LIGHT_ID = "Qwen2.5-0.5B-Instruct-q4f16_1-MLC";
 
-const DEFAULT_SYSTEM = "Tu es Home Made Intelligence (HMI), un assistant IA expert, amical et précis. Tu fonctionnes entièrement sur l'appareil de l'utilisateur, sans internet : tu ne peux pas consulter le web ni connaître l'actualité récente. Règles : 1) Réponds dans la langue de l'utilisateur, en français correct. 2) Pour les questions de calcul, de logique ou de code, réfléchis étape par étape avant de donner la réponse finale, et vérifie ton résultat. 3) Va droit au but, puis donne les détails utiles. 4) Pour le code, donne du code complet et fonctionnel dans un bloc de code. 5) N'invente jamais de faits, de chiffres ou de sources : si tu n'es pas sûr, dis-le clairement. 6) Utilise le Markdown (listes, titres) quand ça aide la lecture.";
+const DEFAULT_SYSTEM = [
+  "Tu es Home Made Intelligence (HMI), un assistant IA expert, amical et précis. Tu fonctionnes entièrement sur l'appareil de l'utilisateur, sans internet : tu ne connais pas l'actualité récente.",
+  "",
+  "Règles de fond :",
+  "- Réponds dans la langue de l'utilisateur, en français correct.",
+  "- Pour le calcul, la logique ou le code, réfléchis étape par étape et vérifie ton résultat.",
+  "- N'invente jamais de faits ni de chiffres. Si tu n'es pas sûr, dis-le.",
+  "",
+  "Mise en forme (Markdown). Tes réponses doivent être belles et faciles à lire, jamais un gros bloc de texte :",
+  "- Commence par une phrase courte qui répond directement.",
+  "- Pour une réponse longue, découpe-la en sections avec des titres ### qui commencent par un emoji (exemple : ### 🚀 Les étapes).",
+  "- Utilise des listes à puces ou numérotées, avec le mot-clé en **gras** au début de chaque point.",
+  "- Écris des paragraphes courts : 2 ou 3 phrases maximum.",
+  "- Pour comparer plusieurs choses, utilise un tableau Markdown.",
+  "- Mets le code dans un bloc ``` en indiquant le langage.",
+  "- Quand c'est utile, termine par une ligne du type **💡 Astuce :** ou **✅ En résumé :**.",
+  "- Pour une question simple (salut, oui ou non, petite question), réponds en une ou deux phrases, sans titres."
+].join("\n");
+const OLD_DEFAULTS = ["Tu es Home Made Intelligence (HMI), un assistant IA utile", "Tu es Home Made Intelligence (HMI), un assistant IA expert, amical et précis. Tu fonctionnes entièrement sur l'appareil de l'utilisateur, sans internet : tu ne peux pas consulter"];
 
 /* Téléphones : moins de mémoire graphique → contexte plus court pour éviter les plantages */
 const IS_MOBILE = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Mac/.test(navigator.platform));
@@ -339,7 +370,7 @@ const ICON = {
 
 let settings = Object.assign({ model: "Qwen2.5-1.5B-Instruct-q4f16_1-MLC", temp: 0.7, system: DEFAULT_SYSTEM, voice: false, theme: "auto" }, load(LS_SET, {}));
 if (!MODELS.some(m => m.id === settings.model)) settings.model = MODELS[3].id;
-if (settings.system && settings.system.startsWith("Tu es Home Made Intelligence (HMI), un assistant IA utile")) settings.system = DEFAULT_SYSTEM;
+if (!settings.system || OLD_DEFAULTS.some(o => settings.system.startsWith(o))) settings.system = DEFAULT_SYSTEM;
 let chats = load(LS_CHATS, []);
 const LS_PROJ = "hmi_projects_v1";
 let projects = load(LS_PROJ, []);
@@ -375,6 +406,11 @@ function enhanceCode(el) {
     b.className = "copy-code"; b.textContent = "Copier";
     b.onclick = () => copyText((code || pre).innerText, b);
     pre.appendChild(b);
+  });
+  el.querySelectorAll("table").forEach(t => {
+    if (t.parentElement.classList.contains("table-wrap")) return;
+    const w = document.createElement("div"); w.className = "table-wrap";
+    t.replaceWith(w); w.appendChild(t);
   });
   el.querySelectorAll("a").forEach(a => { a.target = "_blank"; a.rel = "noopener"; });
 }
