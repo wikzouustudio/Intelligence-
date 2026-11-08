@@ -308,7 +308,7 @@ input[type=range]{width:100%;accent-color:var(--g2)}
         <button class="send" id="sendBtn" disabled aria-label="Envoyer"></button>
       </div>
       </div>
-      <div class="hint">HMI tourne sur ton appareil. Seules la recherche 🌐 et les images 🎨 passent par internet. Elle peut se tromper.</div>
+      <div class="hint">HMI réfléchit et dessine sur ton appareil. Seule la recherche 🌐 passe par internet. Elle peut se tromper.</div>
     </div>
   </main>
 </div>
@@ -316,7 +316,7 @@ input[type=range]{width:100%;accent-color:var(--g2)}
 <!-- Chargement du modèle -->
 <div class="overlay" id="loader">
   <div class="card">
-    <h3><svg class="spark spin"><use href="#spark"/></svg>Réveil de HMI…</h3>
+    <h3><svg class="spark spin"><use href="#spark"/></svg><span id="loaderTitle">Réveil de HMI…</span></h3>
     <p class="sub">Premier lancement : le cerveau est téléchargé une seule fois, puis gardé sur ton appareil. Ensuite, ça démarre en quelques secondes.</p>
     <div class="bar"><i id="barFill"></i></div>
     <div class="pct"><span id="pctText">0 %</span><span id="modelLoading"></span></div>
@@ -331,7 +331,7 @@ input[type=range]{width:100%;accent-color:var(--g2)}
     <div class="field">
       <label class="t">Cerveau</label>
       <div class="models" id="modelList"></div>
-      <div class="help">Plus le cerveau est gros, plus il est intelligent, mais plus il est lent et lourd à télécharger.</div>
+      <div class="help">Plus le cerveau est gros, plus il est intelligent, mais plus il est lent et lourd à télécharger.<br>🎨 Les images sont dessinées par un cerveau de dessin séparé (environ 1 à 2 Go), installé la première fois que tu crées une image. Ordinateur conseillé.</div>
     </div>
     <div class="field">
       <label class="t">Créativité : <span id="tempVal"></span></label>
@@ -362,6 +362,8 @@ input[type=range]{width:100%;accent-color:var(--g2)}
 
 <script type="module">
 const WEBLLM_URL = "https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm/+esm";
+const TRANSFORMERS_URL = "https://cdn.jsdelivr.net/npm/@huggingface/transformers@3";
+const IMG_MODEL = "onnx-community/Janus-Pro-1B-ONNX";
 
 const MODELS = [
   { id: "SmolLM2-360M-Instruct-q4f16_1-MLC", name: "Mini",      desc: "~250 Mo · ultra rapide, réponses très simples (anglais surtout)" },
@@ -405,7 +407,7 @@ const MAX_TOKENS = IS_MOBILE ? 1000 : 1800;
 const LS_CHATS = "hmi_chats_v1", LS_SET = "hmi_settings_v1";
 const $ = s => document.querySelector(s);
 const load = (k, d) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } };
-const store = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
+const store = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch { return false; } };
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 const esc = s => s.replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const SPARK = (cls = "") => `<svg class="spark ${cls}"><use href="#spark"/></svg>`;
@@ -566,7 +568,14 @@ function fallbackCopy(t, done) {
 
 /* ---------- Discussions ---------- */
 const currentChat = () => chats.find(c => c.id === currentId);
-const saveChats = () => store(LS_CHATS, chats);
+function saveChats() {
+  if (store(LS_CHATS, chats)) return;
+  /* Mémoire du navigateur pleine : on retire les images les plus anciennes, une par une */
+  const imgs = [];
+  chats.forEach(c => c.messages.forEach(m => { if (m.image?.startsWith("data:")) imgs.push({ m, t: c.updated }); }));
+  imgs.sort((a, b) => a.t - b.t);
+  for (const { m } of imgs) { m.image = null; m.imgRemoved = true; if (store(LS_CHATS, chats)) return; }
+}
 
 function newChat(projectId = null) {
   if (generating) return;
@@ -723,7 +732,7 @@ function welcomeHTML() {
   const proj = projects.find(p => p.id === pendingProject);
   return `<div class="welcome">${proj ? `<div class="proj-badge">📁 Nouvelle discussion dans « ${esc(proj.name)} »</div>` : ""}<h1 class="grad-text">${greeting()} !</h1><h2>Comment je peux t'aider ?</h2>
   <div class="chips">${SUGGESTIONS.map((s, i) => `<button class="chip" data-i="${i}"><span>${esc(s[1])}</span><span class="ico">${s[0]}</span></button>`).join("")}</div>
-  <div class="privacy">🔒 Tes discussions restent sur ton appareil. Touche ＋ pour créer des images ou chercher sur le web.</div></div>`;
+  <div class="privacy">🔒 Tes discussions et tes images restent sur ton appareil. Touche ＋ pour dessiner ou chercher sur le web.</div></div>`;
 }
 
 function msgEl(m, isLast) {
@@ -742,8 +751,12 @@ function msgEl(m, isLast) {
     const g = document.createElement("div"); g.className = "gen-img";
     g.innerHTML = `<img alt=""><div class="img-actions"><a target="_blank" rel="noopener">⬇️ Ouvrir / enregistrer</a></div>`;
     g.querySelector("img").src = m.image; g.querySelector("img").alt = m.imgPrompt || "Image générée";
-    g.querySelector("a").href = m.image;
+    const a = g.querySelector("a"); a.href = m.image;
+    if (m.image.startsWith("data:")) a.download = "hmi-image.jpg";
     body.appendChild(g);
+  } else if (m.imgRemoved) {
+    const n = document.createElement("div"); n.className = "empty-list"; n.style.padding = "8px 0 0";
+    n.textContent = "(Image retirée pour libérer de la place sur l'appareil.)"; body.appendChild(n);
   }
   if (m.sources?.length) {
     const sd = document.createElement("div"); sd.className = "sources";
@@ -826,6 +839,8 @@ function setProgress(p, text) {
 async function ensureEngine() {
   if (engine && loadedModel === settings.model) return engine;
   if (!navigator.gpu) throw new Error("NO_WEBGPU");
+  if (IS_MOBILE) await freeImageModel();
+  $("#loaderTitle").textContent = "Réveil de HMI…";
   loadingModel = true; updateStatus(); setThinkingLabel("Réveil du cerveau…");
   setProgress(0, "Préparation…");
   $("#modelLoading").textContent = "HMI " + MODELS.find(m => m.id === settings.model).name;
@@ -951,14 +966,51 @@ async function generate(chat) {
   }
 }
 
-/* ---------- Création d'images (service gratuit Pollinations, sans compte) ---------- */
+/* ---------- Création d'images 100 % sur l'appareil (Janus-Pro, via WebGPU) ---------- */
+let tjs = null, imgModel = null, imgProcessor = null;
+async function freeImageModel() {
+  if (!imgModel) return;
+  try { await imgModel.dispose(); } catch {}
+  imgModel = null; imgProcessor = null;
+}
+async function ensureImageModel() {
+  if (imgModel) return;
+  if (!navigator.gpu) throw new Error("NO_WEBGPU");
+  $("#loaderTitle").textContent = "Installation du cerveau de dessin…";
+  $("#modelLoading").textContent = "HMI Dessin";
+  setProgress(0, "Préparation…"); showLoader(true);
+  try {
+    if (!tjs) { tjs = await import(TRANSFORMERS_URL); tjs.env.allowLocalModels = false; }
+    const files = {};
+    const cb = e => {
+      if (e.status !== "progress" || !e.file) return;
+      files[e.file] = [e.loaded || 0, e.total || 0];
+      let l = 0, t = 0; for (const [a, b] of Object.values(files)) { l += a; t += b; }
+      setProgress(t ? l / t : 0, `${e.file} · ${(l / 1e6).toFixed(0)} / ${(t / 1e6).toFixed(0)} Mo`);
+    };
+    const adapter = await navigator.gpu.requestAdapter();
+    const fp16 = !!adapter?.features.has("shader-f16");
+    imgProcessor = await tjs.AutoProcessor.from_pretrained(IMG_MODEL, { progress_callback: cb });
+    imgModel = await tjs.MultiModalityCausalLM.from_pretrained(IMG_MODEL, {
+      dtype: fp16
+        ? { prepare_inputs_embeds: "q4", language_model: "q4f16", lm_head: "fp16", gen_head: "fp16", gen_img_embeds: "fp16", image_decode: "fp32" }
+        : { prepare_inputs_embeds: "fp32", language_model: "q4", lm_head: "fp32", gen_head: "fp32", gen_img_embeds: "fp32", image_decode: "fp32" },
+      device: { prepare_inputs_embeds: "wasm", language_model: "webgpu", lm_head: "webgpu", gen_head: "webgpu", gen_img_embeds: "webgpu", image_decode: "webgpu" },
+      progress_callback: cb,
+    });
+  } catch (e) { imgModel = null; imgProcessor = null; throw e; }
+  finally { showLoader(false); }
+}
+const blobToDataURL = b => new Promise((ok, ko) => { const r = new FileReader(); r.onload = () => ok(r.result); r.onerror = ko; r.readAsDataURL(b); });
+
 async function makeImage(chat) {
   const prompt = chat.messages.at(-1).content;
   const asst = { role: "assistant", content: "", imgPrompt: prompt };
   chat.messages.push(asst);
-  setGenerating(true); renderMessages(); setThinkingLabel("Création de l'image…");
+  setGenerating(true); renderMessages(); setThinkingLabel("Préparation du dessin…");
   try {
     let p = prompt.replace(/^\s*(peux-tu\s+|tu peux\s+)?(génère|générer|genere|crée|créer|cree|dessine|dessiner|fais|fait|faire)(-moi|\s+moi)?\s+(une?\s+)?(belle\s+|jolie\s+|petite\s+)?(image|photo|dessin|illustration)\s*(de\s+|d'|du\s+|des\s+)?/i, "").trim() || prompt;
+    /* Si le cerveau qui écrit est déjà chargé, il traduit la demande en anglais (le cerveau de dessin le comprend mieux) */
     if (engine && loadedModel === settings.model) {
       try {
         const r = await engine.chat.completions.create({ messages: [
@@ -969,17 +1021,24 @@ async function makeImage(chat) {
         if (t.length > 5) p = t;
       } catch {}
     }
-    const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(p)}?width=1024&height=1024&nologo=true&seed=${Math.floor(Math.random() * 1e9)}`;
-    await new Promise((ok, ko) => {
-      const im = new Image(); const to = setTimeout(() => ko(new Error("timeout")), 120000);
-      im.onload = () => { clearTimeout(to); ok(); }; im.onerror = () => { clearTimeout(to); ko(new Error("img")); };
-      im.src = url;
-    });
-    asst.image = url;
-    asst.content = "Voici ton image 🎨";
+    if (IS_MOBILE && engine) await resetEngine();   /* téléphone : on libère la mémoire pour dessiner */
+    await ensureImageModel();
+    setThinkingLabel("Dessin en cours… 0 %");
+    const inputs = await imgProcessor([{ role: "<|User|>", content: p }], { chat_template: "text_to_image" });
+    const n = imgProcessor.num_image_tokens;
+    let done = 0, lastPct = -1;
+    const streamer = { put() { done++; const pct = Math.min(99, Math.round(done / n * 100)); if (pct !== lastPct) { lastPct = pct; setThinkingLabel(`Dessin en cours… ${pct} %`); } }, end() {} };
+    const outputs = await imgModel.generate_images({ ...inputs, min_new_tokens: n, max_new_tokens: n, do_sample: true, streamer });
+    const blob = await outputs[0].toBlob("image/jpeg", 0.9);
+    asst.image = await blobToDataURL(blob);
+    asst.content = "Voici ton image 🎨, dessinée directement sur ton appareil.";
   } catch (e) {
+    console.error(e);
     asst.error = true;
-    asst.content = "⚠️ **Impossible de créer l'image pour le moment.**\n\nLe service d'images gratuit est peut-être surchargé, ou ta connexion internet est coupée. Réessaie dans un instant avec ↻.";
+    const msg = String(e?.message || e);
+    if (msg === "NO_WEBGPU") asst.content = "⚠️ **Ton navigateur ne peut pas dessiner sur cet appareil** (WebGPU indisponible). Essaie avec Chrome ou Edge récent sur ordinateur.";
+    else if (/load failed|failed to fetch|network/i.test(msg)) asst.content = "⚠️ **Impossible d'installer le cerveau de dessin.**\n\nIl faut internet la première fois pour le télécharger (environ 1 à 2 Go). Ensuite, il est gardé sur ton appareil.";
+    else asst.content = "⚠️ **Ton appareil n'a pas assez de mémoire pour dessiner.**\n\nLe dessin demande beaucoup de puissance : ferme les autres onglets et applis, puis réessaie avec ↻. Sur téléphone, ça peut ne pas marcher : un ordinateur avec une bonne carte graphique est conseillé.\n\n<sub>Détail : " + msg.slice(0, 160) + "</sub>";
   } finally {
     chat.updated = Date.now();
     setGenerating(false); saveChats(); renderMessages(); renderSidebar();
@@ -1055,7 +1114,7 @@ $("#modeChip").onclick = () => { setMode(null); input.focus(); };
 $("#plusBtn").onclick = e => {
   e.stopPropagation();
   showMenu(e.currentTarget, [
-    { text: "🎨  Créer une image", act: () => { setMode("image"); input.focus(); } },
+    { text: "🎨  Dessiner une image", act: () => { setMode("image"); input.focus(); } },
     { text: "🌐  Rechercher sur le web", act: () => { setMode("search"); input.focus(); } },
   ]);
 };
