@@ -40,8 +40,10 @@ button{font:inherit;color:inherit}
 
 /* Spark */
 .spark{width:28px;height:28px;flex-shrink:0;display:block}
-.spark.spin{animation:think 1.3s ease-in-out infinite}
-@keyframes think{0%,100%{transform:scale(1) translateY(0);filter:drop-shadow(0 0 0 transparent)}50%{transform:scale(.88) translateY(-2px);filter:drop-shadow(0 0 8px #a3e635)}}
+.spark{transition:transform .4s}
+.spark.spin{animation:spin 1.4s cubic-bezier(.5,.1,.5,.9) infinite}
+@keyframes spin{0%{transform:rotate(0) scale(1);filter:drop-shadow(0 0 0 transparent)}50%{transform:rotate(200deg) scale(.82);filter:drop-shadow(0 0 7px #a3e635)}100%{transform:rotate(360deg) scale(1);filter:drop-shadow(0 0 0 transparent)}}
+.brand:hover .spark{transform:rotate(72deg)}
 
 /* Sidebar */
 .sidebar{width:280px;background:var(--surface);display:flex;flex-direction:column;padding:14px 12px calc(14px + env(safe-area-inset-bottom));gap:12px;flex-shrink:0}
@@ -275,12 +277,13 @@ input[type=range]{width:100%;accent-color:var(--g2)}
     <linearGradient id="hmiGrad" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0" stop-color="#fde047"/><stop offset=".4" stop-color="#bef264"/><stop offset=".75" stop-color="#4ade80"/><stop offset="1" stop-color="#10b981"/>
     </linearGradient>
-    <!-- Logo HMI : une maison (Home Made) avec un réseau de neurones (Intelligence) -->
+    <!-- Logo HMI : une hélice à 5 pales qui tourne quand HMI réfléchit -->
     <symbol id="spark" viewBox="0 0 24 24">
-      <path d="M12 2.8 20.6 9.9v9.3a2.3 2.3 0 0 1-2.3 2.3H5.7a2.3 2.3 0 0 1-2.3-2.3V9.9Z" fill="url(#hmiGrad)" stroke="url(#hmiGrad)" stroke-width="1.8" stroke-linejoin="round"/>
-      <circle cx="12" cy="14.6" r="2.1" fill="#0b1020"/>
-      <path d="M12 12.5V9.8M9.9 15.8l-2.4 1.4M14.1 15.8l2.4 1.4" stroke="#0b1020" stroke-width="1.6" stroke-linecap="round"/>
-      <circle cx="12" cy="9.2" r="1.1" fill="#0b1020"/><circle cx="7" cy="17.5" r="1.1" fill="#0b1020"/><circle cx="17" cy="17.5" r="1.1" fill="#0b1020"/>
+      <g fill="url(#hmiGrad)">
+        <path id="hmiBlade" d="M12 12C10.3 8.6 11.1 4.4 14.6 1.9 16.9 5.6 15.7 10 12 12Z"/>
+        <use href="#hmiBlade" transform="rotate(72 12 12)"/><use href="#hmiBlade" transform="rotate(144 12 12)"/><use href="#hmiBlade" transform="rotate(216 12 12)"/><use href="#hmiBlade" transform="rotate(288 12 12)"/>
+      </g>
+      <circle cx="12" cy="12" r="1.5" fill="#0b1020"/>
     </symbol>
   </defs>
 </svg>
@@ -1033,7 +1036,7 @@ async function runCompletion(chat, asst, prefix, searchCtx, modelId, isCode, isG
   const msgs = [{ role: "system", content: sys }, ...history];
   const promptChars = msgs.reduce((n, m) => n + m.content.length, 0);
   const maxTok = Math.max(300, Math.min(isCode ? MAX_CODE_TOKENS : MAX_TOKENS, ctxFor(modelId) - Math.ceil(promptChars / 3) - 64));
-  const stream = await eng.chat.completions.create({ messages: msgs, stream: true, temperature: isCode ? 0.2 : Number(settings.temp), frequency_penalty: isCode ? 0 : 0.3, max_tokens: maxTok });
+  const stream = await eng.chat.completions.create({ messages: msgs, stream: true, temperature: isCode ? 0.2 : Number(settings.temp), max_tokens: maxTok });
   for await (const chunk of stream) {
     const delta = chunk.choices?.[0]?.delta?.content || "";
     if (delta) { asst.content += delta; updateLast(prefix + asst.content); }
