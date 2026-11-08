@@ -385,6 +385,48 @@ const MODELS = [
 ];
 const LIGHT_ID = "Qwen2.5-0.5B-Instruct-q4f16_1-MLC";
 const CODER_ID = "Qwen2.5-Coder-1.5B-Instruct-q4f16_1-MLC", CODER_PRO_ID = "Qwen2.5-Coder-7B-Instruct-q4f16_1-MLC", CODER_LIGHT_ID = "Qwen2.5-Coder-0.5B-Instruct-q4f16_1-MLC";
+const GAME_TEMPLATE = `<!DOCTYPE html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no"><title>Mon jeu</title>
+<style>
+body{margin:0;background:#0b1020;color:#fff;font-family:system-ui,sans-serif;overflow:hidden;user-select:none}
+canvas{display:block;touch-action:none}
+#hud{position:fixed;top:14px;left:0;right:0;text-align:center;font-size:22px;font-weight:800;text-shadow:0 2px 8px #000}
+.screen{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;background:#000b;text-align:center}
+.screen h1{margin:0;font-size:42px}
+button{font-size:20px;font-weight:800;padding:14px 32px;border:none;border-radius:999px;background:linear-gradient(90deg,#fde047,#4ade80);color:#0b1a0f;cursor:pointer}
+</style></head><body>
+<canvas id="c"></canvas>
+<div id="hud">Score : <span id="score">0</span></div>
+<div class="screen" id="start"><h1>Mon jeu</h1><p>Explication des contrôles</p><button id="play">Jouer</button></div>
+<div class="screen" id="over" style="display:none"><h1>Perdu !</h1><p>Score : <span id="final">0</span></p><button id="again">Rejouer</button></div>
+<script>
+const cv = document.getElementById("c"), ctx = cv.getContext("2d");
+let W, H, score = 0, running = false;
+function resize() { W = cv.width = innerWidth; H = cv.height = innerHeight; }
+addEventListener("resize", resize); resize();
+const keys = {};
+addEventListener("keydown", e => keys[e.key] = true);
+addEventListener("keyup", e => keys[e.key] = false);
+let pointer = null; // position du doigt ou de la souris
+const pos = e => { const r = cv.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
+cv.addEventListener("pointerdown", e => pointer = pos(e));
+cv.addEventListener("pointermove", e => { if (pointer) pointer = pos(e); });
+addEventListener("pointerup", () => pointer = null);
+function reset() { score = 0; /* créer le joueur, les ennemis… */ }
+function start() { reset(); running = true; document.getElementById("start").style.display = "none"; document.getElementById("over").style.display = "none"; }
+function gameOver() { running = false; document.getElementById("final").textContent = score; document.getElementById("over").style.display = "flex"; }
+function update(dt) { /* déplacements, collisions, score… (dt en secondes) */ }
+function draw() { ctx.fillStyle = "#0b1020"; ctx.fillRect(0, 0, W, H); /* dessiner le jeu */ document.getElementById("score").textContent = score; }
+let last = performance.now();
+function loop(t) { const dt = Math.min(0.05, (t - last) / 1000); last = t; if (running) update(dt); draw(); requestAnimationFrame(loop); }
+document.getElementById("play").onclick = start;
+document.getElementById("again").onclick = start;
+requestAnimationFrame(loop);
+<\/script>
+</body></html>`;
+function looksLikeGame(t) { return /\b(jeu|jeux|game|snake|serpent|pong|casse-briques?|tetris|flappy|plateforme|shooter|labyrinthe|course|morpion|memory)\b/i.test(t); }
+/* Taille de mémoire de conversation selon le cerveau (plus petite pour les gros cerveaux sur téléphone) */
+const ctxFor = id => IS_MOBILE && /Phi-3\.5|Llama-3\.2-3B/.test(id) ? 2048 : 4096;
 const CODE_RULES = [
   "",
   "MODE DÉVELOPPEUR EXPERT :",
@@ -393,6 +435,8 @@ const CODE_RULES = [
   "- Donne TOUJOURS le code complet : jamais de « ... », de « reste du code ici » ni de partie à compléter.",
   "- JavaScript moderne (const, let, fonctions fléchées), noms clairs, quelques commentaires utiles.",
   "- Pour un jeu : une seule page HTML avec un <canvas> qui s'adapte à l'écran, une boucle requestAnimationFrame, des contrôles clavier ET tactiles, un score, un écran de fin et un bouton pour rejouer.",
+  "- Pour les clics et le toucher sur un canvas, calcule toujours la position avec getBoundingClientRect().",
+  "- Soigne le visuel : couleurs harmonieuses, coins arrondis, ombres légères, texte lisible, rien qui dépasse de l'écran.",
   "- Avant de répondre, vérifie chaque variable et chaque fonction : aucune variable non définie, aucune fonction manquante, aucune faute de frappe.",
   "- Si on te signale une erreur, explique la cause en une phrase, puis redonne le code complet corrigé."
 ].join("\n");
@@ -420,10 +464,9 @@ const OLD_DEFAULTS = ["Tu es Home Made Intelligence (HMI), un assistant IA utile
 
 /* Téléphones : moins de mémoire graphique → contexte plus court pour éviter les plantages */
 const IS_MOBILE = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Mac/.test(navigator.platform));
-const CTX = IS_MOBILE ? 3072 : 4096;
 const HIST_CHARS = IS_MOBILE ? 2000 : 5500;
 const MAX_TOKENS = IS_MOBILE ? 1000 : 1800;
-const MAX_CODE_TOKENS = IS_MOBILE ? 1700 : 2400;
+const MAX_CODE_TOKENS = IS_MOBILE ? 2000 : 2600;
 
 const LS_CHATS = "hmi_chats_v1", LS_SET = "hmi_settings_v1";
 const $ = s => document.querySelector(s);
@@ -506,7 +549,11 @@ function buildDoc(code, lang) {
       + '<script>const L=document.getElementById("log");const P=(...a)=>{const d=document.createElement("div");d.textContent=a.map(x=>typeof x==="object"?JSON.stringify(x):String(x)).join(" ");L.appendChild(d)};console.log=console.info=console.warn=console.error=P;onerror=m=>P("Erreur : "+m);<\/script>'
       + "<script>" + safe + "<\/script>";
   }
-  return /<html|<head|<body/i.test(code) ? code : head + code;
+  /* Un style de base propre, appliqué seulement là où le code n'a rien prévu */
+  const polish = '<style>html,body{margin:0}body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:#0b1020;color:#e8eaef;-webkit-tap-highlight-color:transparent}canvas{display:block;margin:0 auto;max-width:100%;touch-action:none}button{font:inherit;font-weight:700;border:none;border-radius:999px;padding:10px 22px;background:linear-gradient(90deg,#fde047,#4ade80);color:#0b1a0f;cursor:pointer}input,select,textarea{font:inherit;padding:8px 12px;border-radius:10px;border:1px solid #334155;background:#111827;color:#e8eaef}a{color:#4ade80}</style>';
+  if (/<head[^>]*>/i.test(code)) return code.replace(/<head[^>]*>/i, m => m + polish);
+  if (/<html[^>]*>/i.test(code)) return code.replace(/<html[^>]*>/i, m => m + "<head>" + polish + "</head>");
+  return head + polish + code;
 }
 function makeFrame(code, lang) {
   const f = document.createElement("iframe");
@@ -918,7 +965,7 @@ async function ensureEngine(modelId = settings.model) {
   try {
     if (!webllm) webllm = await import(WEBLLM_URL);
     const cb = r => setProgress(r.progress, r.text);
-    const chatOpts = { context_window_size: CTX };
+    const chatOpts = { context_window_size: ctxFor(modelId) };
     if (!engine) engine = await webllm.CreateMLCEngine(modelId, { initProgressCallback: cb }, chatOpts);
     else { engine.setInitProgressCallback(cb); await engine.reload(modelId, chatOpts); }
     loadedModel = modelId;
@@ -967,12 +1014,18 @@ async function send(text) {
   await generate(chat);
 }
 
-async function runCompletion(chat, asst, prefix, searchCtx, modelId, isCode) {
+async function runCompletion(chat, asst, prefix, searchCtx, modelId, isCode, isGame) {
   const eng = await ensureEngine(modelId);
   let history = trimHistory(chat.messages.slice(0, -1).filter(m => !m.error).map(m => m.image ? { role: m.role, content: `(Image créée : ${m.imgPrompt || "image"})` } : m));
   if (searchCtx) history = [{ role: "user", content: searchCtx }];
-  const msgs = [{ role: "system", content: (settings.system || DEFAULT_SYSTEM) + (isCode ? "\n" + CODE_RULES : "") }, ...history];
-  const stream = await eng.chat.completions.create({ messages: msgs, stream: true, temperature: isCode ? 0.2 : Number(settings.temp), max_tokens: isCode ? MAX_CODE_TOKENS : MAX_TOKENS });
+  const last = chat.messages.at(-2);
+  if (last?.auto) history = [{ role: "user", content: last.content }];   /* correction : le code et l'erreur sont dans le message */
+  let sys = (settings.system || DEFAULT_SYSTEM) + (isCode ? "\n" + CODE_RULES : "");
+  if (isGame && !last?.auto) sys += "\n\nMODÈLE DE DÉPART POUR LES JEUX : garde cette structure (écran de départ, score, écran de fin, contrôles clavier et tactiles), remplis reset(), update() et draw(), change le titre et les couleurs, et rends le jeu beau.\n```html\n" + GAME_TEMPLATE + "\n```";
+  const msgs = [{ role: "system", content: sys }, ...history];
+  const promptChars = msgs.reduce((n, m) => n + m.content.length, 0);
+  const maxTok = Math.max(300, Math.min(isCode ? MAX_CODE_TOKENS : MAX_TOKENS, ctxFor(modelId) - Math.ceil(promptChars / 3) - 64));
+  const stream = await eng.chat.completions.create({ messages: msgs, stream: true, temperature: isCode ? 0.2 : Number(settings.temp), frequency_penalty: isCode ? 0 : 0.3, max_tokens: maxTok });
   for await (const chunk of stream) {
     const delta = chunk.choices?.[0]?.delta?.content || "";
     if (delta) { asst.content += delta; updateLast(prefix + asst.content); }
@@ -984,6 +1037,7 @@ async function generate(chat) {
   const mode = userMsg.mode;
   if (mode === "image") return makeImage(chat);
   const isCode = mode === "code" || userMsg.auto || (mode !== "search" && looksLikeCode(userMsg.content || ""));
+  const isGame = isCode && !userMsg.auto && looksLikeGame(userMsg.content || "");
   let modelId = pickModel(isCode);
   activeModel = modelId;
   const asst = { role: "assistant", content: "" };
@@ -1004,7 +1058,7 @@ async function generate(chat) {
       setThinkingLabel("Réflexion…");
     }
     for (let attempt = 0; ; attempt++) {
-      try { await runCompletion(chat, asst, notice, searchCtx, modelId, isCode); break; }
+      try { await runCompletion(chat, asst, notice, searchCtx, modelId, isCode, isGame); break; }
       catch (e) {
         if (!isGpuLost(e) || asst.content || attempt >= 2) throw e;
         console.warn("Moteur perdu, redémarrage…", e);
@@ -1050,7 +1104,7 @@ async function generate(chat) {
       const err = await testHtml(html);
       if (err && currentChat() === chat) {
         chat.fixes = (chat.fixes || 0) + 1;
-        chat.messages.push({ role: "user", auto: true, mode: "code", content: `Quand je teste ton code, il y a cette erreur : ${err}\nCorrige le problème et redonne la page HTML complète, sans rien couper.` });
+        chat.messages.push({ role: "user", auto: true, mode: "code", content: "Voici ton code :\n\n```html\n" + html.slice(0, 9000) + "\n```\n\nQuand je le teste, il y a cette erreur : " + err + "\nTrouve la cause, puis redonne la page HTML complète corrigée, sans rien couper." });
         saveChats();
         return generate(chat);
       }
