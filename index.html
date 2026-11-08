@@ -377,6 +377,7 @@ input[type=range]{width:100%;accent-color:var(--g2)}
             <button class="btn" type="button" data-pull="qwen2.5:14b">14B · 12 Go</button>
             <button class="btn" type="button" data-pull="qwen2.5:32b">32B · 24 Go</button>
             <button class="btn" type="button" data-pull="qwen2.5-coder:14b">Code 14B · 12 Go</button>
+            <button class="btn" type="button" data-pull="x/z-image-turbo" style="grid-column:1/-1">🎨 Dessin HD (Z-Image) · 12 Go+</button>
           </div>
           <div class="help">Mémoire de ta carte graphique : Gestionnaire des tâches → Performances → GPU → « Mémoire GPU dédiée ».</div>
         </div>
@@ -422,7 +423,7 @@ input[type=range]{width:100%;accent-color:var(--g2)}
 </div>
 
 <script type="module">
-const APP_VERSION = "2026-11-08-1910";
+const APP_VERSION = "2026-11-08-1918";
 const WEBLLM_URL = "https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm/+esm";
 const TRANSFORMERS_URL = "https://cdn.jsdelivr.net/npm/@huggingface/transformers@3";
 const IMG_MODEL = "onnx-community/Janus-Pro-1B-ONNX";
@@ -1083,6 +1084,46 @@ async function olChat(messages, { temperature = 0.7, top_p = 0.9, max = 2048, on
     }
   }
 }
+/* Dessin HD via Ollama (Z-Image Turbo ou FLUX.2 Klein), quand il est installé sur le PC */
+const isImgModel = n => /(^|\/)(z-image|flux)/i.test(n);
+async function olImageModel() {
+  try { return (await olList(olBase())).find(isImgModel) || null; } catch { return null; }
+}
+async function olImage(model, prompt, onPct) {
+  olAbort = new AbortController();
+  const r = await fetch(olBase() + "/api/generate", {
+    method: "POST", signal: olAbort.signal, headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ model, prompt, stream: true, width: 1024, height: 1024 }),
+  });
+  if (!r.ok) throw new Error("Ollama : " + (await r.text()).slice(0, 200));
+  const rd = r.body.getReader(), dec = new TextDecoder();
+  let buf = "", img = null;
+  const handle = line => {
+    if (!line) return;
+    const j = JSON.parse(line);
+    if (j.error) throw new Error(j.error);
+    if (j.total && j.completed != null) onPct(Math.min(99, Math.round(j.completed / j.total * 100)));
+    if (j.image) img = j.image;
+    if (j.images?.[0]) img = j.images[0];
+  };
+  for (;;) {
+    const { done, value } = await rd.read();
+    if (done) break;
+    buf += dec.decode(value, { stream: true });
+    let i;
+    while ((i = buf.indexOf("\n")) >= 0) { const line = buf.slice(0, i).trim(); buf = buf.slice(i + 1); handle(line); }
+  }
+  handle(buf.trim());
+  if (!img) throw new Error("aucune image reçue");
+  return img.startsWith("data:") ? img : "data:image/png;base64," + img;
+}
+async function toJpeg(dataUrl, q = 0.88) {
+  const im = new Image(); im.src = dataUrl; await im.decode();
+  const c = document.createElement("canvas"); c.width = im.naturalWidth; c.height = im.naturalHeight;
+  c.getContext("2d").drawImage(im, 0, 0);
+  return c.toDataURL("image/jpeg", q);
+}
+
 /* Petite réponse rapide (titres, traduction pour les images) avec le cerveau disponible */
 async function quickComplete(messages, max) {
   if (useOllama()) return olChat(messages, { temperature: 0.3, max });
@@ -1283,11 +1324,31 @@ async function makeImage(chat) {
     try {
       const out = await quickComplete([
         { role: "system", content: "You write short, vivid English prompts for an image generator." },
-        { role: "user", content: `Translate and enrich this into ONE English image prompt (max 35 words, no quotes, no explanation): ${p}` },
-      ], 70);
+        { role: "user", content: `Translate and enrich this into ONE English image prompt (max 45 words, no quotes, no explanation). Keep the subject exactly, add vivid details, setting, lighting, art style and quality keywords (highly detailed, sharp focus, beautiful composition): ${p}` },
+      ], 90);
       const t = out.split("\n")[0].replace(/^[\s"'«»*]+|[\s"'«»*]+$/g, "");
       if (t.length > 5) p = t;
     } catch {}
+    if (!/detailed|sharp|quality/i.test(p)) p += ", highly detailed, vibrant colors, sharp focus, beautiful lighting";
+    /* PC avec HMI PRO : dessin HD avec le cerveau de dessin d'Ollama, s'il est installé */
+    let hdDone = false, hdNote = "";
+    if (useOllama()) {
+      const im = await olImageModel();
+      if (im) {
+        try {
+          setThinkingLabel("Dessin HD en cours…");
+          const url = await olImage(im, p, pct => setThinkingLabel(`Dessin HD en cours… ${pct} %`));
+          asst.image = await toJpeg(url, 0.88);
+          asst.content = "Voici ton image 🎨, dessinée en HD sur ton PC.";
+          hdDone = true;
+        } catch (err) {
+          if (stopped) throw err;
+          console.warn("Dessin HD impossible", err);
+          hdNote = "\n\n<sub>Le dessin HD n'a pas marché sur ce PC, j'ai utilisé le dessin du navigateur.</sub>";
+        }
+      }
+    }
+    if (!hdDone) {
     if (IS_MOBILE && engine) await resetEngine();   /* téléphone : on libère la mémoire pour dessiner */
     await ensureImageModel();
     setThinkingLabel("Dessin en cours… 0 %");
@@ -1298,7 +1359,8 @@ async function makeImage(chat) {
     const outputs = await imgModel.generate_images({ ...inputs, min_new_tokens: n, max_new_tokens: n, do_sample: true, streamer });
     const blob = await outputs[0].toBlob("image/jpeg", 0.9);
     asst.image = await blobToDataURL(blob);
-    asst.content = "Voici ton image 🎨, dessinée directement sur ton appareil.";
+    asst.content = "Voici ton image 🎨, dessinée directement sur ton appareil." + hdNote;
+    }
   } catch (e) {
     console.error(e);
     asst.error = true;
@@ -1473,6 +1535,11 @@ if ($have -like ('*' + $model + '*')) { Say 'Ce cerveau est deja installe.' } el
   Say 'Telechargement du cerveau (plusieurs Go, ca peut prendre un moment)...'
   & $exe pull $model
 }
+if ($vram -ge 11000) {
+  Say 'Installation du dessin HD (Z-Image), si ton PC le permet...'
+  & $exe pull x/z-image-turbo
+  if ($LASTEXITCODE -ne 0) { Say 'Le dessin HD n''est pas encore disponible sur ce PC : HMI dessinera dans le navigateur.' }
+}
 
 Say '[5/5] Ouverture de HMI PRO...'
 Start-Process ($hmi + '?pro=1&model=' + [uri]::EscapeDataString($model))
@@ -1515,8 +1582,8 @@ document.querySelectorAll("[data-pull]").forEach(b => b.onclick = async () => {
     if (!ok) throw new Error("téléchargement interrompu");
     fill.style.width = "100%";
     await $("#olTest").onclick();
-    $("#olModel").value = name;
-    msg.textContent = `✅ ${name} est installé et sélectionné. Clique sur Enregistrer.`;
+    if (isImgModel(name)) msg.textContent = "✅ Le dessin HD est installé : tes prochaines images seront dessinées en HD sur ton PC.";
+    else { $("#olModel").value = name; msg.textContent = `✅ ${name} est installé et sélectionné. Clique sur Enregistrer.`; }
   } catch (e) {
     msg.textContent = "❌ Échec du téléchargement : " + String(e.message || e).slice(0, 120);
   } finally {
@@ -1540,11 +1607,13 @@ $("#olTest").onclick = async () => {
       base = alt; $("#olUrl").value = alt;
     }
     $("#olPull").style.display = "";
-    if (!names.length) { sel.innerHTML = '<option value="">Aucun cerveau installé</option>'; msg.textContent = "✅ Ollama est connecté. Installe un cerveau avec un des boutons ci-dessous."; return; }
+    const hd = names.find(isImgModel);
+    names = names.filter(n => !isImgModel(n));
+    if (!names.length) { sel.innerHTML = '<option value="">Aucun cerveau installé</option>'; msg.textContent = "✅ Ollama est connecté. Installe un cerveau avec un des boutons ci-dessous." + (hd ? " 🎨 Dessin HD installé." : ""); return; }
     const prev = sel.value || settings.olModel;
     sel.innerHTML = names.map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join("");
     if (names.includes(prev)) sel.value = prev;
-    msg.textContent = `✅ Connecté : ${names.length} cerveau${names.length > 1 ? "x" : ""} trouvé${names.length > 1 ? "s" : ""}. Choisis-en un puis Enregistrer.`;
+    msg.textContent = `✅ Connecté : ${names.length} cerveau${names.length > 1 ? "x" : ""} trouvé${names.length > 1 ? "s" : ""}. Choisis-en un puis Enregistrer.` + (hd ? " 🎨 Dessin HD installé." : "");
   } catch (e) {
     $("#olPull").style.display = "none";
     /* Diagnostic : Ollama est-il lancé mais refuse HMI (autorisation), ou injoignable ? */
@@ -1665,7 +1734,7 @@ async function autoConnectPro() {
   history.replaceState(null, "", location.pathname);
   for (const base of ["http://localhost:11434", "http://127.0.0.1:11434"]) {
     try {
-      const names = await olList(base);
+      const names = (await olList(base)).filter(n => !isImgModel(n));
       if (!names.length) continue;
       const want = q.get("model");
       settings.ollama = true; settings.olUrl = base;
