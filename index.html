@@ -252,6 +252,8 @@ input[type=range]{width:100%;accent-color:var(--g2)}
 .btn.primary{background:var(--text);color:var(--bg)}
 .btn.danger{color:#ef4444;background:transparent;padding-left:4px}
 .scrim{display:none}
+.update-toast{position:fixed;left:50%;top:calc(14px + env(safe-area-inset-top));transform:translateX(-50%);z-index:90;display:flex;align-items:center;gap:12px;background:var(--bg);border:1px solid var(--border);border-radius:999px;padding:8px 8px 8px 18px;font-size:14px;box-shadow:0 12px 40px #0007;animation:pop .25s ease;white-space:nowrap}
+.update-toast .btn{padding:8px 16px}
 .txt{width:100%;border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:14px;padding:12px;font:inherit;font-size:14px}
 #olBox{display:none}#olBox.on{display:block}
 .ol-help{margin-top:12px}
@@ -420,6 +422,7 @@ input[type=range]{width:100%;accent-color:var(--g2)}
 </div>
 
 <script type="module">
+const APP_VERSION = "2026-11-08-1842";
 const WEBLLM_URL = "https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm/+esm";
 const TRANSFORMERS_URL = "https://cdn.jsdelivr.net/npm/@huggingface/transformers@3";
 const IMG_MODEL = "onnx-community/Janus-Pro-1B-ONNX";
@@ -1570,6 +1573,22 @@ $("#clearAll").onclick = () => {
   addEventListener("resize", build);
   build(); requestAnimationFrame(draw);
 })();
+
+/* ---------- Nouvelle version disponible ? (GitHub garde parfois l'ancienne en mémoire quelques minutes) ---------- */
+async function checkUpdate() {
+  if (!location.protocol.startsWith("http")) return;
+  try {
+    const t = await (await fetch(location.pathname + "?check=" + Date.now(), { cache: "no-store" })).text();
+    const v = (t.match(/APP_VERSION = "([^"]+)"/) || [])[1];
+    if (!v || v === APP_VERSION || document.querySelector(".update-toast")) return;
+    const d = document.createElement("div"); d.className = "update-toast";
+    d.innerHTML = '<span>✨ Nouvelle version de HMI</span><button class="btn primary">Mettre à jour</button>';
+    d.querySelector("button").onclick = () => { location.href = location.pathname + "?v=" + encodeURIComponent(v); };
+    document.body.appendChild(d);
+  } catch {}
+}
+setTimeout(checkUpdate, 3000);
+setInterval(checkUpdate, 5 * 60 * 1000);
 
 /* ---------- Démarrage ---------- */
 applyTheme();
