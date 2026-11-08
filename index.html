@@ -353,13 +353,13 @@ input[type=range]{width:100%;accent-color:var(--g2)}
     </div>
     <div class="field" id="olField">
       <div class="row" style="margin-bottom:10px">
-        <label class="t" style="margin:0">💪 Mode PC puissant (Ollama)</label>
+        <label class="t" style="margin:0">💪 HMI PRO (sur ton PC avec Ollama)</label>
         <label class="switch"><input type="checkbox" id="olOn"><i></i></label>
       </div>
       <div class="help" style="margin:-4px 0 10px">Utilise les gros cerveaux installés sur ce PC avec Ollama : beaucoup plus intelligents, et toujours 100 % chez toi.</div>
       <div id="olBox">
         <div class="ol-step"><b>1.</b> Télécharge l'installateur et double-clique dessus. Il installe Ollama, l'autorise pour HMI et le lance tout seul.
-          <button class="btn primary" id="olInstaller" type="button" style="margin-top:8px">⬇️ Installateur HMI PC (Windows)</button></div>
+          <button class="btn primary" id="olInstaller" type="button" style="margin-top:8px">⬇️ Installateur HMI PRO (Windows)</button></div>
         <div class="ol-step"><b>2.</b> Clique sur Connecter, puis installe un cerveau directement d'ici.</div>
         <input id="olUrl" class="txt" placeholder="http://localhost:11434" autocomplete="off">
         <div class="row" style="margin-top:8px">
@@ -399,7 +399,7 @@ input[type=range]{width:100%;accent-color:var(--g2)}
       <div class="help"><a href="#" id="resetSys" style="color:var(--g2)">Remettre la personnalité par défaut</a></div>
     </div>
     <div class="field row">
-      <label class="t" style="margin:0">💻 Cerveau Codeur automatique pour le code</label>
+      <label class="t" style="margin:0">💻 Utiliser HMI Code automatiquement pour le code</label>
       <label class="switch"><input type="checkbox" id="autoCode"><i></i></label>
     </div>
     <div class="field row">
@@ -425,10 +425,10 @@ const TRANSFORMERS_URL = "https://cdn.jsdelivr.net/npm/@huggingface/transformers
 const IMG_MODEL = "onnx-community/Janus-Pro-1B-ONNX";
 
 const MODELS = [
-  { id: "Qwen2.5-0.5B-Instruct-q4f16_1-MLC",       name: "Léger",  desc: "~400 Mo · rapide, le plus stable sur téléphone" },
-  { id: "Qwen2.5-1.5B-Instruct-q4f16_1-MLC",       name: "Malin",  desc: "~1 Go · très bon en français, idéal sur téléphone", rec: true },
-  { id: "Qwen2.5-Coder-1.5B-Instruct-q4f16_1-MLC", name: "Codeur", desc: "~1 Go · spécialiste du code, utilisé automatiquement pour le code", coder: true },
-  { id: "Qwen2.5-7B-Instruct-q4f16_1-MLC",         name: "Génie",  desc: "~5 Go · le plus intelligent, en français comme en code · ordinateur avec bonne carte graphique", heavy: true },
+  { id: "Qwen2.5-0.5B-Instruct-q4f16_1-MLC",       name: "Nano",  desc: "~400 Mo · rapide, le plus stable sur téléphone" },
+  { id: "Qwen2.5-1.5B-Instruct-q4f16_1-MLC",       name: "Core",  desc: "~1 Go · très bon en français, idéal sur téléphone", rec: true },
+  { id: "Qwen2.5-Coder-1.5B-Instruct-q4f16_1-MLC", name: "Code",  desc: "~1 Go · spécialiste du code, utilisé automatiquement pour le code", coder: true },
+  { id: "Qwen2.5-7B-Instruct-q4f16_1-MLC",         name: "Plus",  desc: "~5 Go · le plus intelligent, en français comme en code · ordinateur avec bonne carte graphique", heavy: true },
 ];
 const LIGHT_ID = "Qwen2.5-0.5B-Instruct-q4f16_1-MLC";
 const CODER_ID = "Qwen2.5-Coder-1.5B-Instruct-q4f16_1-MLC", DEFAULT_ID = "Qwen2.5-1.5B-Instruct-q4f16_1-MLC";
@@ -668,7 +668,7 @@ function pickModel(isCode) {
   const cur = MODELS.find(m => m.id === settings.model) || {};
   if (cur.coder) return cur.id;
   if (!settings.autoCode) return settings.model;
-  return cur.heavy && !IS_MOBILE ? cur.id : CODER_ID;   /* sur ordinateur, Génie code lui-même (il est meilleur) */
+  return cur.heavy && !IS_MOBILE ? cur.id : CODER_ID;   /* sur ordinateur, HMI Plus code lui-même (il est meilleur) */
 }
 function extractHtml(text) {
   const re = /```([\w-]*)[^\n]*\n([\s\S]*?)```/g; let m, last = null;
@@ -976,12 +976,12 @@ function setThinkingLabel(t) {
 function updateStatus() {
   if (useOllama()) {
     $("#dot").className = "dot" + (generating ? " busy" : olReady ? " ready" : "");
-    $("#modelName").textContent = "HMI PC";
+    $("#modelName").textContent = "HMI PRO";
     $("#modelState").textContent = generating ? "réfléchit…" : settings.olModel;
     return;
   }
   const shown = (generating || loadingModel) && activeModel ? activeModel : settings.model;
-  const m = MODELS.find(x => x.id === shown) || { name: "Codeur" };
+  const m = MODELS.find(x => x.id === shown) || { name: "Code" };
   const ready = engine && loadedModel === settings.model;
   $("#dot").className = "dot" + (generating || loadingModel ? " busy" : ready ? " ready" : "");
   $("#modelName").textContent = "HMI " + m.name;
@@ -1021,7 +1021,7 @@ async function ensureEngine(modelId = settings.model) {
   $("#loaderTitle").textContent = "Réveil de HMI…";
   loadingModel = true; updateStatus(); setThinkingLabel("Réveil du cerveau…");
   setProgress(0, "Préparation…");
-  $("#modelLoading").textContent = "HMI " + (MODELS.find(m => m.id === modelId)?.name || "Codeur");
+  $("#modelLoading").textContent = "HMI " + (MODELS.find(m => m.id === modelId)?.name || "Code");
   showLoader(true);
   try {
     if (!webllm) webllm = await import(WEBLLM_URL);
@@ -1181,10 +1181,10 @@ async function generate(chat) {
         const cur = MODELS.findIndex(m => m.id === settings.model), light = MODELS.findIndex(m => m.id === LIGHT_ID);
         if (attempt === 1 && modelId !== settings.model) {
           modelId = activeModel = LIGHT_ID;
-          notice = "> ℹ️ Le cerveau Codeur était trop lourd pour cet appareil : j'utilise **HMI Léger**.\n\n";
+          notice = "> ℹ️ HMI Code était trop lourd pour cet appareil : j'utilise **HMI Nano**.\n\n";
         } else if (attempt === 1 && cur > light) {
           settings.model = modelId = activeModel = LIGHT_ID; store(LS_SET, settings);
-          notice = "> ℹ️ Le cerveau choisi était trop lourd pour cet appareil : je suis passée sur **HMI Léger**. Tu peux changer dans ⚙️ Réglages.\n\n";
+          notice = "> ℹ️ Le cerveau choisi était trop lourd pour cet appareil : je suis passée sur **HMI Nano**. Tu peux changer dans ⚙️ Réglages.\n\n";
         }
       }
     }
@@ -1196,13 +1196,13 @@ async function generate(chat) {
       asst.error = false;
     } else if (useOllama()) {
       olReady = false;
-      asst.content = "⚠️ **Impossible de parler à Ollama sur ce PC.**\n\n- Vérifie qu'**Ollama est lancé** (icône près de l'horloge).\n- Vérifie que tu as bien fait l'étape **OLLAMA_ORIGINS**, puis **quitté et relancé** Ollama.\n- Si le navigateur a demandé l'accès au réseau local, il faut l'**autoriser**.\n\nTu peux aussi désactiver le **Mode PC puissant** dans ⚙️ Réglages.\n\n<sub>Détail : " + msg.slice(0, 160) + "</sub>";
+      asst.content = "⚠️ **Impossible de parler à Ollama sur ce PC.**\n\n- Vérifie qu'**Ollama est lancé** (icône près de l'horloge).\n- Vérifie que tu as bien fait l'étape **OLLAMA_ORIGINS**, puis **quitté et relancé** Ollama.\n- Si le navigateur a demandé l'accès au réseau local, il faut l'**autoriser**.\n\nTu peux aussi désactiver **HMI PRO** dans ⚙️ Réglages.\n\n<sub>Détail : " + msg.slice(0, 160) + "</sub>";
     } else if (msg === "NO_WEBGPU") {
       asst.content = "⚠️ **Ton navigateur ne peut pas faire tourner l'IA sur cet appareil** (WebGPU indisponible).\n\nEssaie avec :\n- **Chrome** ou **Edge** récent sur ordinateur\n- **Chrome** sur Android\n- **Safari** sur iPhone / iPad / Mac à jour (iOS 26 ou plus récent)";
     } else if (/load failed|failed to fetch|networkerror|network error/i.test(msg)) {
       asst.content = "⚠️ **Impossible de télécharger le cerveau de HMI.**\n\nVérifie ta connexion internet (nécessaire au premier lancement), et ouvre la page directement dans **Safari** ou **Chrome**, pas dans un aperçu intégré.";
     } else if (isGpuLost(e)) {
-      asst.content = "⚠️ **Ton appareil manque de mémoire pour ce cerveau.**\n\nFerme les autres onglets et applis, puis réessaie. Si ça continue, choisis **HMI Léger** dans ⚙️ Réglages.";
+      asst.content = "⚠️ **Ton appareil manque de mémoire pour ce cerveau.**\n\nFerme les autres onglets et applis, puis réessaie. Si ça continue, choisis **HMI Nano** dans ⚙️ Réglages.";
     } else {
       asst.content += (asst.content ? "\n\n" : "") + "⚠️ **Erreur :** " + msg + "\n\nSi ça se répète, recharge la page ou choisis un cerveau plus léger dans ⚙️ Réglages.";
     }
@@ -1378,7 +1378,7 @@ $("#plusBtn").onclick = e => {
   showMenu(e.currentTarget, [
     { text: "🎨  Dessiner une image", act: () => { setMode("image"); input.focus(); } },
     { text: "🌐  Rechercher sur le web", act: () => { setMode("search"); input.focus(); } },
-    { text: "💻  Mode code (cerveau Codeur)", act: () => { setMode("code"); input.focus(); } },
+    { text: "💻  Mode code (HMI Code)", act: () => { setMode("code"); input.focus(); } },
   ]);
 };
 $("#search").addEventListener("input", e => { searchQ = e.target.value; renderSidebar(); });
@@ -1406,8 +1406,8 @@ $("#olOn").onchange = e => $("#olBox").classList.toggle("on", e.target.checked);
 $("#olInstaller").onclick = () => {
   const origin = location.protocol.startsWith("http") ? location.origin : "https://wikzouustudio.github.io";
   const bat = [
-    "@echo off", "chcp 65001 >nul", "title Installateur HMI PC",
-    "echo.", "echo  === HMI - Mode PC puissant ===", "echo.",
+    "@echo off", "chcp 65001 >nul", "title Installateur HMI PRO",
+    "echo.", "echo  === Installation de HMI PRO ===", "echo.",
     "set \"OLLAMA_EXE=%LOCALAPPDATA%\\Programs\\Ollama\\ollama app.exe\"",
     "if not exist \"%OLLAMA_EXE%\" (",
     "  echo  [1/3] Installation d'Ollama...",
