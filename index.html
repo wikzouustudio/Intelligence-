@@ -43,7 +43,7 @@ button{font:inherit;color:inherit}
 .spark{transition:transform .4s}
 .spark.spin{animation:spin 1.4s cubic-bezier(.5,.1,.5,.9) infinite}
 @keyframes spin{0%{transform:rotate(0) scale(1);filter:drop-shadow(0 0 0 transparent)}50%{transform:rotate(200deg) scale(.82);filter:drop-shadow(0 0 7px #a3e635)}100%{transform:rotate(360deg) scale(1);filter:drop-shadow(0 0 0 transparent)}}
-.brand:hover .spark{transform:rotate(72deg)}
+.brand:hover .spark{transform:rotate(120deg)}
 
 /* Sidebar */
 .sidebar{width:280px;background:var(--surface);display:flex;flex-direction:column;padding:14px 12px calc(14px + env(safe-area-inset-bottom));gap:12px;flex-shrink:0}
@@ -274,16 +274,12 @@ input[type=range]{width:100%;accent-color:var(--g2)}
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <defs>
-    <linearGradient id="hmiGrad" x1="0" y1="0" x2="1" y2="1">
+    <linearGradient id="hmiGrad" gradientUnits="userSpaceOnUse" x1="2" y1="2" x2="22" y2="22">
       <stop offset="0" stop-color="#fde047"/><stop offset=".4" stop-color="#bef264"/><stop offset=".75" stop-color="#4ade80"/><stop offset="1" stop-color="#10b981"/>
     </linearGradient>
-    <!-- Logo HMI : une hélice à 5 pales qui tourne quand HMI réfléchit -->
+    <!-- Logo HMI : un nœud géométrique à 3 boucles (une seule ligne qui s'entrelace), qui tourne quand HMI réfléchit -->
     <symbol id="spark" viewBox="0 0 24 24">
-      <g fill="url(#hmiGrad)">
-        <path id="hmiBlade" d="M12 12C10.3 8.6 11.1 4.4 14.6 1.9 16.9 5.6 15.7 10 12 12Z"/>
-        <use href="#hmiBlade" transform="rotate(72 12 12)"/><use href="#hmiBlade" transform="rotate(144 12 12)"/><use href="#hmiBlade" transform="rotate(216 12 12)"/><use href="#hmiBlade" transform="rotate(288 12 12)"/>
-      </g>
-      <circle cx="12" cy="12" r="1.5" fill="#0b1020"/>
+      <path d="M12.00 8.52 L21.08 13.46 L17.80 19.14 L8.99 13.74 L8.72 3.40 L15.28 3.40 L15.01 13.74 L6.20 19.14 L2.92 13.46Z" fill="none" stroke="url(#hmiGrad)" stroke-width="2.3" stroke-linejoin="round" stroke-linecap="round"/>
     </symbol>
   </defs>
 </svg>
