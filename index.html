@@ -252,6 +252,11 @@ input[type=range]{width:100%;accent-color:var(--g2)}
 .btn.primary{background:var(--text);color:var(--bg)}
 .btn.danger{color:#ef4444;background:transparent;padding-left:4px}
 .scrim{display:none}
+.txt{width:100%;border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:14px;padding:12px;font:inherit;font-size:14px}
+#olBox{display:none}#olBox.on{display:block}
+.ol-help{margin-top:12px}.ol-help summary{cursor:pointer;color:var(--g3);font-weight:600}
+.ol-help ol{padding-left:1.2em;margin:8px 0 0}.ol-help li{margin:6px 0;line-height:1.5}
+.ol-help code{background:var(--surface);padding:2px 6px;border-radius:6px;font-family:"JetBrains Mono",monospace;font-size:12px;user-select:all}
 
 @media (max-width:860px){
   .chips{grid-template-columns:repeat(2,1fr)}
@@ -341,6 +346,34 @@ input[type=range]{width:100%;accent-color:var(--g2)}
       <label class="t">Cerveau</label>
       <div class="models" id="modelList"></div>
       <div class="help">Plus le cerveau est gros, plus il est intelligent, mais plus il est lent et lourd à télécharger.<br>🎨 Les images sont dessinées par un cerveau de dessin séparé (environ 1 à 2 Go), installé la première fois que tu crées une image. Ordinateur conseillé.</div>
+    </div>
+    <div class="field" id="olField">
+      <div class="row" style="margin-bottom:10px">
+        <label class="t" style="margin:0">💪 Mode PC puissant (Ollama)</label>
+        <label class="switch"><input type="checkbox" id="olOn"><i></i></label>
+      </div>
+      <div class="help" style="margin:-4px 0 10px">Utilise les gros cerveaux installés sur ce PC avec Ollama : beaucoup plus intelligents, et toujours 100 % chez toi.</div>
+      <div id="olBox">
+        <input id="olUrl" class="txt" placeholder="http://localhost:11434" autocomplete="off">
+        <div class="row" style="margin-top:8px">
+          <select id="olModel"><option value="">Clique sur « Connecter »</option></select>
+          <button class="btn" id="olTest" type="button" style="flex-shrink:0">Connecter</button>
+        </div>
+        <div class="help" id="olMsg"></div>
+        <details class="help ol-help"><summary>Comment installer Ollama (5 minutes)</summary>
+          <ol>
+            <li>Télécharge et installe <b>Ollama</b> depuis <b>ollama.com</b>.</li>
+            <li>Ouvre l'<b>Invite de commandes</b> (touche Windows, tape « cmd ») et installe un cerveau selon ta carte graphique :<br>
+              8 Go : <code>ollama pull qwen2.5:7b</code><br>
+              12 Go : <code>ollama pull qwen2.5:14b</code><br>
+              16 à 24 Go : <code>ollama pull qwen2.5:32b</code><br>
+              Pour le code : <code>ollama pull qwen2.5-coder:14b</code></li>
+            <li>Autorise HMI à parler à Ollama :<br><code>setx OLLAMA_ORIGINS "https://wikzouustudio.github.io"</code></li>
+            <li><b>Quitte Ollama</b> (icône près de l'horloge → Quit) puis relance-le.</li>
+            <li>Reviens ici, clique sur <b>Connecter</b> et choisis ton cerveau. Si le navigateur demande l'accès au réseau local, accepte.</li>
+          </ol>
+        </details>
+      </div>
     </div>
     <div class="field">
       <label class="t">Créativité : <span id="tempVal"></span></label>
@@ -484,7 +517,7 @@ const ICON = {
   redo: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15.5-6.2L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15.5 6.2L3 16"/><path d="M3 21v-5h5"/></svg>',
 };
 
-let settings = Object.assign({ model: "Qwen2.5-1.5B-Instruct-q4f16_1-MLC", temp: 0.7, system: DEFAULT_SYSTEM, voice: false, theme: "auto", autoCode: true }, load(LS_SET, {}));
+let settings = Object.assign({ model: "Qwen2.5-1.5B-Instruct-q4f16_1-MLC", temp: 0.7, system: DEFAULT_SYSTEM, voice: false, theme: "auto", autoCode: true, ollama: false, olUrl: "http://localhost:11434", olModel: "" }, load(LS_SET, {}));
 if (!MODELS.some(m => m.id === settings.model)) settings.model = DEFAULT_ID;
 /* Une créativité trop haute fait écrire des mots au hasard : on la limite à 1 */
 if (!(Number(settings.temp) >= 0) || Number(settings.temp) > 1) settings.temp = 0.7;
@@ -928,6 +961,12 @@ function setThinkingLabel(t) {
 
 /* ---------- Statut ---------- */
 function updateStatus() {
+  if (useOllama()) {
+    $("#dot").className = "dot" + (generating ? " busy" : olReady ? " ready" : "");
+    $("#modelName").textContent = "HMI PC";
+    $("#modelState").textContent = generating ? "réfléchit…" : settings.olModel;
+    return;
+  }
   const shown = (generating || loadingModel) && activeModel ? activeModel : settings.model;
   const m = MODELS.find(x => x.id === shown) || { name: "Codeur" };
   const ready = engine && loadedModel === settings.model;
@@ -993,11 +1032,54 @@ async function resetEngine() {
   engine = null; loadedModel = null; updateStatus();
 }
 
-function trimHistory(msgs) {
+/* ---------- Mode PC puissant : Ollama sur ce PC ---------- */
+const useOllama = () => !IS_MOBILE && settings.ollama && !!settings.olModel;
+const olBase = () => (settings.olUrl || "http://localhost:11434").trim().replace(/\/+$/, "");
+let olAbort = null, olReady = false;
+async function olList(base) {
+  const r = await fetch(base + "/api/tags");
+  if (!r.ok) throw new Error("HTTP " + r.status);
+  return ((await r.json()).models || []).map(m => m.name);
+}
+const stripThink = t => t.replace(/<think>[\s\S]*?(<\/think>\s*|$)/g, "");
+async function olChat(messages, { temperature = 0.7, top_p = 0.9, max = 2048, onDelta } = {}) {
+  olAbort = new AbortController();
+  const r = await fetch(olBase() + "/api/chat", {
+    method: "POST", signal: olAbort.signal, headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ model: settings.olModel, messages, stream: !!onDelta, options: { temperature, top_p, num_ctx: 8192, num_predict: max } }),
+  });
+  if (!r.ok) throw new Error("Ollama : " + (await r.text()).slice(0, 200));
+  olReady = true;
+  if (!onDelta) return stripThink((await r.json()).message?.content || "");
+  const rd = r.body.getReader(), dec = new TextDecoder();
+  let buf = "";
+  for (;;) {
+    const { done, value } = await rd.read();
+    if (done) break;
+    buf += dec.decode(value, { stream: true });
+    let i;
+    while ((i = buf.indexOf("\n")) >= 0) {
+      const line = buf.slice(0, i).trim(); buf = buf.slice(i + 1);
+      if (!line) continue;
+      const j = JSON.parse(line);
+      if (j.error) throw new Error("Ollama : " + j.error);
+      if (j.message?.content) onDelta(j.message.content);
+    }
+  }
+}
+/* Petite réponse rapide (titres, traduction pour les images) avec le cerveau disponible */
+async function quickComplete(messages, max) {
+  if (useOllama()) return olChat(messages, { temperature: 0.3, max });
+  if (!engine || !loadedModel) return "";
+  const r = await engine.chat.completions.create({ messages, temperature: 0.3, max_tokens: max, stream: false });
+  return r.choices?.[0]?.message?.content || "";
+}
+
+function trimHistory(msgs, limit = HIST_CHARS) {
   const out = []; let total = 0;
   for (let i = msgs.length - 1; i >= 0; i--) {
     total += msgs[i].content.length;
-    if (out.length && total > HIST_CHARS) break;
+    if (out.length && total > limit) break;
     out.unshift({ role: msgs[i].role, content: msgs[i].content });
   }
   while (out.length && out[0].role !== "user") out.shift();
@@ -1025,14 +1107,24 @@ async function send(text) {
 }
 
 async function runCompletion(chat, asst, prefix, searchCtx, modelId, isCode, isGame) {
-  const eng = await ensureEngine(modelId);
-  let history = trimHistory(chat.messages.slice(0, -1).filter(m => !m.error).map(m => m.image ? { role: m.role, content: `(Image créée : ${m.imgPrompt || "image"})` } : m));
+  const ol = useOllama();
+  const eng = ol ? null : await ensureEngine(modelId);
+  let history = trimHistory(chat.messages.slice(0, -1).filter(m => !m.error).map(m => m.image ? { role: m.role, content: `(Image créée : ${m.imgPrompt || "image"})` } : m), ol ? 14000 : HIST_CHARS);
   if (searchCtx) history = [{ role: "user", content: searchCtx }];
   const last = chat.messages.at(-2);
   if (last?.auto) history = [{ role: "user", content: last.content }];   /* correction : le code et l'erreur sont dans le message */
   let sys = (settings.system || DEFAULT_SYSTEM) + (isCode ? "\n" + CODE_RULES : "");
   if (isGame && !last?.auto) sys += "\n\nMODÈLE DE DÉPART POUR LES JEUX : garde cette structure (écran de départ, score, écran de fin, contrôles clavier et tactiles), remplis reset(), update() et draw(), change le titre et les couleurs, et rends le jeu beau.\n```html\n" + GAME_TEMPLATE + "\n```";
   const msgs = [{ role: "system", content: sys }, ...history];
+  if (ol) {
+    let raw = "";
+    await olChat(msgs, {
+      temperature: isCode ? 0.2 : Math.min(1, Number(settings.temp) || 0.7), top_p: isCode ? 0.95 : 0.9, max: isCode ? 4096 : 2048,
+      onDelta: d => { raw += d; const shown = stripThink(raw); if (shown.trim()) { asst.content = shown; updateLast(prefix + shown); } else setThinkingLabel("Réflexion approfondie…"); },
+    });
+    asst.content = stripThink(raw);
+    return;
+  }
   const promptChars = msgs.reduce((n, m) => n + m.content.length, 0);
   const maxTok = Math.max(300, Math.min(isCode ? MAX_CODE_TOKENS : MAX_TOKENS, ctxFor(modelId) - Math.ceil(promptChars / 3) - 64));
   const stream = await eng.chat.completions.create({ messages: msgs, stream: true, temperature: isCode ? 0.2 : Math.min(1, Number(settings.temp) || 0.7), top_p: isCode ? 0.95 : 0.9, max_tokens: maxTok });
@@ -1049,7 +1141,7 @@ async function generate(chat) {
   const isCode = mode === "code" || userMsg.auto || (mode !== "search" && looksLikeCode(userMsg.content || ""));
   const isGame = isCode && !userMsg.auto && looksLikeGame(userMsg.content || "");
   let modelId = pickModel(isCode);
-  activeModel = modelId;
+  activeModel = useOllama() ? "ollama" : modelId;
   const asst = { role: "assistant", content: "" };
   chat.messages.push(asst);
   stopped = false;
@@ -1087,7 +1179,12 @@ async function generate(chat) {
     console.error(e);
     const msg = String(e?.message || e);
     asst.error = true;
-    if (msg === "NO_WEBGPU") {
+    if (stopped && e?.name === "AbortError") {
+      asst.error = false;
+    } else if (useOllama()) {
+      olReady = false;
+      asst.content = "⚠️ **Impossible de parler à Ollama sur ce PC.**\n\n- Vérifie qu'**Ollama est lancé** (icône près de l'horloge).\n- Vérifie que tu as bien fait l'étape **OLLAMA_ORIGINS**, puis **quitté et relancé** Ollama.\n- Si le navigateur a demandé l'accès au réseau local, il faut l'**autoriser**.\n\nTu peux aussi désactiver le **Mode PC puissant** dans ⚙️ Réglages.\n\n<sub>Détail : " + msg.slice(0, 160) + "</sub>";
+    } else if (msg === "NO_WEBGPU") {
       asst.content = "⚠️ **Ton navigateur ne peut pas faire tourner l'IA sur cet appareil** (WebGPU indisponible).\n\nEssaie avec :\n- **Chrome** ou **Edge** récent sur ordinateur\n- **Chrome** sur Android\n- **Safari** sur iPhone / iPad / Mac à jour (iOS 26 ou plus récent)";
     } else if (/load failed|failed to fetch|networkerror|network error/i.test(msg)) {
       asst.content = "⚠️ **Impossible de télécharger le cerveau de HMI.**\n\nVérifie ta connexion internet (nécessaire au premier lancement), et ouvre la page directement dans **Safari** ou **Chrome**, pas dans un aperçu intégré.";
@@ -1102,7 +1199,7 @@ async function generate(chat) {
     chat.updated = Date.now();
     setGenerating(false); saveChats(); renderMessages(); renderSidebar();
     if (settings.voice && !asst.error) speak(asst.content);
-    if (!asst.error && !chat.titled && engine && chat.messages.length === 2) {
+    if (!asst.error && !chat.titled && (engine || useOllama()) && chat.messages.length === 2) {
       chat.titled = true;
       titlePromise = autoTitle(chat).finally(() => { titlePromise = null; });
     }
@@ -1167,16 +1264,14 @@ async function makeImage(chat) {
   try {
     let p = prompt.replace(/^\s*(peux-tu\s+|tu peux\s+)?(génère|générer|genere|crée|créer|cree|dessine|dessiner|fais|fait|faire)(-moi|\s+moi)?\s+(une?\s+)?(belle\s+|jolie\s+|petite\s+)?(image|photo|dessin|illustration)\s*(de\s+|d'|du\s+|des\s+)?/i, "").trim() || prompt;
     /* Si le cerveau qui écrit est déjà chargé, il traduit la demande en anglais (le cerveau de dessin le comprend mieux) */
-    if (engine && loadedModel) {
-      try {
-        const r = await engine.chat.completions.create({ messages: [
-          { role: "system", content: "You write short, vivid English prompts for an image generator." },
-          { role: "user", content: `Translate and enrich this into ONE English image prompt (max 35 words, no quotes, no explanation): ${p}` },
-        ], temperature: 0.4, max_tokens: 70, stream: false });
-        const t = (r.choices?.[0]?.message?.content || "").split("\n")[0].replace(/^[\s"'«»*]+|[\s"'«»*]+$/g, "");
-        if (t.length > 5) p = t;
-      } catch {}
-    }
+    try {
+      const out = await quickComplete([
+        { role: "system", content: "You write short, vivid English prompts for an image generator." },
+        { role: "user", content: `Translate and enrich this into ONE English image prompt (max 35 words, no quotes, no explanation): ${p}` },
+      ], 70);
+      const t = out.split("\n")[0].replace(/^[\s"'«»*]+|[\s"'«»*]+$/g, "");
+      if (t.length > 5) p = t;
+    } catch {}
     if (IS_MOBILE && engine) await resetEngine();   /* téléphone : on libère la mémoire pour dessiner */
     await ensureImageModel();
     setThinkingLabel("Dessin en cours… 0 %");
@@ -1205,21 +1300,18 @@ async function makeImage(chat) {
 async function autoTitle(chat) {
   try {
     const q = chat.messages[0]?.content || "", a = chat.messages[1]?.content || "";
-    const r = await engine.chat.completions.create({
-      messages: [
-        { role: "system", content: "Tu écris des titres très courts pour des conversations." },
-        { role: "user", content: `Donne un titre de 2 à 5 mots, en français, qui résume cette conversation. Réponds uniquement avec le titre, sans guillemets.\n\nQuestion : ${q.slice(0, 400)}\nRéponse : ${a.slice(0, 400)}` },
-      ],
-      temperature: 0.2, max_tokens: 16, stream: false,
-    });
-    let t = (r.choices?.[0]?.message?.content || "").split("\n")[0];
+    const out = await quickComplete([
+      { role: "system", content: "Tu écris des titres très courts pour des conversations." },
+      { role: "user", content: `Donne un titre de 2 à 5 mots, en français, qui résume cette conversation. Réponds uniquement avec le titre, sans guillemets.\n\nQuestion : ${q.slice(0, 400)}\nRéponse : ${a.slice(0, 400)}` },
+    ], 24);
+    let t = out.split("\n")[0];
     t = t.replace(/^\s*(titre\s*:)?\s*/i, "").replace(/^[\s"'«»*#]+|[\s"'«»*#.!:]+$/g, "").trim();
     if (t.length >= 2 && t.length <= 60) { chat.title = t; saveChats(); renderSidebar(); }
   } catch (e) { console.warn("Titre auto impossible", e); }
 }
 
 let stopped = false;
-function stop() { stopped = true; try { engine?.interruptGenerate(); } catch {} }
+function stop() { stopped = true; try { engine?.interruptGenerate(); } catch {} try { olAbort?.abort(); } catch {} }
 
 async function regenerate() {
   const chat = currentChat();
@@ -1285,9 +1377,31 @@ function openSettings() {
   $("#sys").value = settings.system;
   $("#voice").checked = !!settings.voice;
   $("#autoCode").checked = settings.autoCode !== false;
+  $("#olField").style.display = IS_MOBILE ? "none" : "";
+  $("#olOn").checked = !!settings.ollama;
+  $("#olBox").classList.toggle("on", !!settings.ollama);
+  $("#olUrl").value = settings.olUrl || "http://localhost:11434";
+  const sel = $("#olModel");
+  sel.innerHTML = settings.olModel ? `<option value="${esc(settings.olModel)}">${esc(settings.olModel)}</option>` : '<option value="">Clique sur « Connecter »</option>';
+  $("#olMsg").textContent = "";
   $("#theme").value = settings.theme;
   $("#settingsModal").classList.add("show"); closeSidebar();
 }
+$("#olOn").onchange = e => $("#olBox").classList.toggle("on", e.target.checked);
+$("#olTest").onclick = async () => {
+  const msg = $("#olMsg"), sel = $("#olModel"), base = ($("#olUrl").value.trim() || "http://localhost:11434").replace(/\/+$/, "");
+  msg.textContent = "Connexion…";
+  try {
+    const names = await olList(base);
+    if (!names.length) { msg.textContent = "⚠️ Ollama marche, mais aucun cerveau n'est installé. Fais l'étape 2 (ollama pull …)."; return; }
+    const prev = sel.value || settings.olModel;
+    sel.innerHTML = names.map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join("");
+    if (names.includes(prev)) sel.value = prev;
+    msg.textContent = `✅ Connecté : ${names.length} cerveau${names.length > 1 ? "x" : ""} trouvé${names.length > 1 ? "s" : ""}. Choisis-en un puis Enregistrer.`;
+  } catch (e) {
+    msg.textContent = "❌ Impossible de joindre Ollama. Vérifie qu'il est lancé, que l'étape OLLAMA_ORIGINS est faite et qu'Ollama a été relancé, et autorise l'accès au réseau local si le navigateur le demande.";
+  }
+};
 $("#temp").oninput = e => $("#tempVal").textContent = e.target.value;
 $("#resetSys").onclick = e => { e.preventDefault(); $("#sys").value = DEFAULT_SYSTEM; };
 $("#openSettings").onclick = openSettings;
@@ -1305,6 +1419,9 @@ $("#saveSettings").onclick = () => {
   settings.system = $("#sys").value.trim() || DEFAULT_SYSTEM;
   settings.voice = $("#voice").checked;
   settings.autoCode = $("#autoCode").checked;
+  settings.ollama = $("#olOn").checked;
+  settings.olUrl = $("#olUrl").value.trim() || "http://localhost:11434";
+  settings.olModel = $("#olModel").value;
   settings.theme = $("#theme").value;
   store(LS_SET, settings); applyTheme(); updateStatus();
   $("#settingsModal").classList.remove("show");
