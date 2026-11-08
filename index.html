@@ -360,9 +360,9 @@ input[type=range]{width:100%;accent-color:var(--g2)}
       </div>
       <div class="help" style="margin:-4px 0 10px">Utilise les gros cerveaux installés sur ce PC avec Ollama : beaucoup plus intelligents, et toujours 100 % chez toi.</div>
       <div id="olBox">
-        <div class="ol-step"><b>1.</b> Télécharge l'installateur et double-clique dessus. Il installe Ollama, l'autorise pour HMI et le lance tout seul.
+        <div class="ol-step"><b>Tout est automatique :</b> télécharge l'installateur et double-clique dessus. Il installe Ollama, le démarre (et à chaque allumage du PC), choisit le cerveau adapté à ta carte graphique, puis rouvre HMI PRO prêt à l'emploi.
           <button class="btn primary" id="olInstaller" type="button" style="margin-top:8px">⬇️ Installateur HMI PRO (Windows)</button></div>
-        <div class="ol-step"><b>2.</b> Clique sur Connecter, puis installe un cerveau directement d'ici.</div>
+        <div class="ol-step" style="color:var(--muted)">Déjà installé ? Clique simplement sur Connecter.</div>
         <input id="olUrl" class="txt" placeholder="http://localhost:11434" autocomplete="off">
         <div class="row" style="margin-top:8px">
           <select id="olModel"><option value="">Clique sur « Connecter »</option></select>
@@ -422,7 +422,7 @@ input[type=range]{width:100%;accent-color:var(--g2)}
 </div>
 
 <script type="module">
-const APP_VERSION = "2026-11-08-1901";
+const APP_VERSION = "2026-11-08-1910";
 const WEBLLM_URL = "https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm/+esm";
 const TRANSFORMERS_URL = "https://cdn.jsdelivr.net/npm/@huggingface/transformers@3";
 const IMG_MODEL = "onnx-community/Janus-Pro-1B-ONNX";
@@ -1199,7 +1199,7 @@ async function generate(chat) {
       asst.error = false;
     } else if (useOllama()) {
       olReady = false;
-      asst.content = "⚠️ **Impossible de parler à Ollama sur ce PC.**\n\n- Vérifie qu'**Ollama est lancé** (icône près de l'horloge).\n- Vérifie que tu as bien fait l'étape **OLLAMA_ORIGINS**, puis **quitté et relancé** Ollama.\n- Si le navigateur a demandé l'accès au réseau local, il faut l'**autoriser**.\n\nTu peux aussi désactiver **HMI PRO** dans ⚙️ Réglages.\n\n<sub>Détail : " + msg.slice(0, 160) + "</sub>";
+      asst.content = "⚠️ **Impossible de parler à Ollama sur ce PC.**\n\n- Le plus simple : relance l'**Installateur HMI PRO** (⚙️ Réglages → HMI PRO), il répare tout automatiquement.\n- Vérifie qu'**Ollama est lancé** (icône près de l'horloge).\n- Vérifie que tu as bien fait l'étape **OLLAMA_ORIGINS**, puis **quitté et relancé** Ollama.\n- Si le navigateur a demandé l'accès au réseau local, il faut l'**autoriser**.\n\nTu peux aussi désactiver **HMI PRO** dans ⚙️ Réglages.\n\n<sub>Détail : " + msg.slice(0, 160) + "</sub>";
     } else if (msg === "NO_WEBGPU") {
       asst.content = "⚠️ **Ton navigateur ne peut pas faire tourner l'IA sur cet appareil** (WebGPU indisponible).\n\nEssaie avec :\n- **Chrome** ou **Edge** récent sur ordinateur\n- **Chrome** sur Android\n- **Safari** sur iPhone / iPad / Mac à jour (iOS 26 ou plus récent)";
     } else if (/load failed|failed to fetch|networkerror|network error/i.test(msg)) {
@@ -1408,35 +1408,83 @@ $("#olOn").onchange = e => $("#olBox").classList.toggle("on", e.target.checked);
 /* Installateur Windows : installe Ollama (winget), l'autorise pour ce site et le lance */
 $("#olInstaller").onclick = () => {
   const origin = location.protocol.startsWith("http") ? location.origin : "https://wikzouustudio.github.io";
-  const bat = [
-    "@echo off", "chcp 65001 >nul", "title Installateur HMI PRO",
-    "echo.", "echo  === Installation de HMI PRO ===", "echo.",
-    "set \"OLLAMA_EXE=%LOCALAPPDATA%\\Programs\\Ollama\\ollama app.exe\"",
-    "if not exist \"%OLLAMA_EXE%\" (",
-    "  echo  [1/3] Installation d'Ollama...",
-    "  winget install -e --id Ollama.Ollama --accept-source-agreements --accept-package-agreements",
-    ")",
-    "if not exist \"%OLLAMA_EXE%\" (",
-    "  echo  Ollama n'a pas pu etre installe automatiquement.",
-    "  echo  Installe-le depuis https://ollama.com puis relance ce fichier.",
-    "  start https://ollama.com/download", "  pause", "  exit /b 1",
-    ")",
-    "echo  [2/3] Autorisation de HMI...",
-    `setx OLLAMA_ORIGINS "${origin}" >nul`,
-    `set "OLLAMA_ORIGINS=${origin}"`,
-    "echo  [3/3] Demarrage d'Ollama...",
-    "taskkill /IM \"ollama app.exe\" /F >nul 2>nul",
-    "taskkill /IM ollama.exe /F >nul 2>nul",
-    "timeout /t 2 >nul",
-    "start \"\" \"%OLLAMA_EXE%\"",
-    "echo.", "echo  Termine ! Retourne dans HMI, clique sur Connecter et installe un cerveau.", "echo.", "pause",
-  ].join("\r\n");
+  const hmi = location.protocol.startsWith("http") ? location.origin + location.pathname : "https://wikzouustudio.github.io/Intelligence-/";
+  /* Fichier hybride : Windows le lance comme un .bat, qui exécute la partie PowerShell en dessous */
+  const script = String.raw`<# : HMI PRO
+@echo off
+title Installateur HMI PRO
+powershell -NoProfile -ExecutionPolicy Bypass -Command "iex ([System.IO.File]::ReadAllText('%~f0',[Text.Encoding]::UTF8))"
+echo.
+pause
+exit /b
+#>
+$origin = 'ORIGIN_HERE'
+$hmi = 'HMI_HERE'
+function Say($t) { Write-Host ('  ' + $t) -ForegroundColor Green }
+function Fail($t) { Write-Host ('  ' + $t) -ForegroundColor Red }
+Write-Host ''
+Write-Host '  ===  Installation de HMI PRO  ===' -ForegroundColor Cyan
+Write-Host ''
+$exe = Join-Path $env:LOCALAPPDATA 'Programs\Ollama\ollama.exe'
+
+if (-not (Test-Path $exe)) {
+  Say '[1/5] Installation d''Ollama (quelques minutes)...'
+  try { winget install -e --id Ollama.Ollama --silent --accept-source-agreements --accept-package-agreements | Out-Host } catch {}
+  if (-not (Test-Path $exe)) {
+    Say 'Telechargement direct d''Ollama...'
+    $setup = Join-Path $env:TEMP 'OllamaSetup.exe'
+    try {
+      Invoke-WebRequest 'https://ollama.com/download/OllamaSetup.exe' -OutFile $setup -UseBasicParsing
+      Start-Process $setup -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART' -Wait
+    } catch {}
+  }
+  if (-not (Test-Path $exe)) { Fail 'Impossible d''installer Ollama automatiquement. Installe-le depuis ollama.com puis relance ce fichier.'; Start-Process 'https://ollama.com/download'; return }
+} else { Say '[1/5] Ollama est deja installe.' }
+
+Say '[2/5] Autorisation de HMI...'
+[Environment]::SetEnvironmentVariable('OLLAMA_ORIGINS', $origin, 'User')
+$env:OLLAMA_ORIGINS = $origin
+
+Say '[3/5] Demarrage d''Ollama...'
+Get-Process 'ollama app','ollama' -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+Start-Sleep -Seconds 2
+Start-Process $exe -ArgumentList 'serve' -WindowStyle Hidden
+$ok = $false
+for ($i = 0; $i -lt 40; $i++) {
+  try { Invoke-WebRequest 'http://127.0.0.1:11434' -UseBasicParsing -TimeoutSec 2 | Out-Null; $ok = $true; break } catch { Start-Sleep -Seconds 1 }
+}
+if (-not $ok) { Fail 'Ollama ne demarre pas. Redemarre le PC puis relance ce fichier.'; return }
+# Demarrage automatique d'Ollama a chaque allumage du PC (invisible)
+$vbs = Join-Path ([Environment]::GetFolderPath('Startup')) 'HMI-PRO-Ollama.vbs'
+$lines = @(
+  'Set sh = CreateObject("WScript.Shell")',
+  ('sh.Environment("PROCESS")("OLLAMA_ORIGINS") = "' + $origin + '"'),
+  ('sh.Run """' + $exe + '"" serve", 0, False')
+)
+Set-Content -Path $vbs -Value $lines -Encoding ASCII
+
+Say '[4/5] Choix du cerveau selon ta carte graphique...'
+$vram = 0
+try { $o = & nvidia-smi --query-gpu=memory.total --format=csv,noheader,nounits 2>$null; if ($o) { $vram = [int](($o | Select-Object -First 1).ToString().Trim()) } } catch {}
+if ($vram -ge 20000) { $model = 'qwen2.5:32b' } elseif ($vram -ge 11000) { $model = 'qwen2.5:14b' } elseif ($vram -ge 7000) { $model = 'qwen2.5:7b' } else { $model = 'qwen2.5:3b' }
+if ($vram -gt 0) { Say ('Carte graphique : ' + [math]::Round($vram / 1024) + ' Go -> cerveau ' + $model) } else { Say ('Cerveau choisi : ' + $model) }
+$have = (& $exe list 2>$null) -join ' '
+if ($have -like ('*' + $model + '*')) { Say 'Ce cerveau est deja installe.' } else {
+  Say 'Telechargement du cerveau (plusieurs Go, ca peut prendre un moment)...'
+  & $exe pull $model
+}
+
+Say '[5/5] Ouverture de HMI PRO...'
+Start-Process ($hmi + '?pro=1&model=' + [uri]::EscapeDataString($model))
+Write-Host ''
+Write-Host '  Termine ! HMI PRO est pret. Tu peux fermer cette fenetre.' -ForegroundColor Cyan
+`.replace("ORIGIN_HERE", origin).replace("HMI_HERE", hmi).replace(/\r?\n/g, "\r\n");
   const a = document.createElement("a");
-  a.href = URL.createObjectURL(new Blob([bat], { type: "application/octet-stream" }));
-  a.download = "Installateur-HMI-PC.bat";
+  a.href = URL.createObjectURL(new Blob([script], { type: "application/octet-stream" }));
+  a.download = "Installateur-HMI-PRO.bat";
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 5000);
-  $("#olMsg").textContent = "📥 Ouvre le fichier téléchargé. Si Windows affiche un avertissement : « Informations complémentaires » → « Exécuter quand même ».";
+  $("#olMsg").textContent = "📥 Double-clique sur le fichier téléchargé. Si Windows affiche un avertissement : « Informations complémentaires » → « Exécuter quand même ». Ensuite, ne touche à rien : HMI PRO se rouvrira tout seul, prêt.";
 };
 
 /* Télécharge un cerveau dans Ollama directement depuis HMI, avec la progression */
@@ -1605,6 +1653,31 @@ async function checkUpdate() {
 }
 setTimeout(checkUpdate, 3000);
 setInterval(checkUpdate, 5 * 60 * 1000);
+
+/* ---------- Connexion automatique après l'installateur (?pro=1) ---------- */
+function toast(html, ms = 6000) {
+  const d = document.createElement("div"); d.className = "update-toast"; d.innerHTML = `<span>${html}</span>`;
+  document.body.appendChild(d); setTimeout(() => d.remove(), ms);
+}
+async function autoConnectPro() {
+  const q = new URLSearchParams(location.search);
+  if (q.get("pro") !== "1" || IS_MOBILE) return;
+  history.replaceState(null, "", location.pathname);
+  for (const base of ["http://localhost:11434", "http://127.0.0.1:11434"]) {
+    try {
+      const names = await olList(base);
+      if (!names.length) continue;
+      const want = q.get("model");
+      settings.ollama = true; settings.olUrl = base;
+      settings.olModel = names.includes(want) ? want : names[0];
+      store(LS_SET, settings); olReady = true; updateStatus();
+      toast(`✅ HMI PRO est prêt avec <b>${esc(settings.olModel)}</b>`);
+      return;
+    } catch {}
+  }
+  toast("⚠️ HMI n'a pas pu se connecter à Ollama. Si le navigateur demande une autorisation, accepte-la puis recharge la page.", 9000);
+}
+setTimeout(autoConnectPro, 400);
 
 /* ---------- Démarrage ---------- */
 applyTheme();
