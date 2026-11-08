@@ -231,9 +231,11 @@ const MODELS = [
   { id: "Qwen2.5-1.5B-Instruct-q4f16_1-MLC", name: "Malin",     desc: "~1 Go · très bon en français", rec: true },
   { id: "Llama-3.2-3B-Instruct-q4f16_1-MLC", name: "Puissant",  desc: "~1,8 Go · plus intelligent, ordinateur conseillé" },
   { id: "Phi-3.5-mini-instruct-q4f16_1-MLC", name: "Expert",    desc: "~2,2 Go · raisonnement et code, ordinateur conseillé" },
+  { id: "Qwen2.5-7B-Instruct-q4f16_1-MLC",   name: "Génie",     desc: "~5 Go · le plus intelligent, excellent en français · ordinateur avec bonne carte graphique uniquement", heavy: true },
+  { id: "Llama-3.1-8B-Instruct-q4f16_1-MLC", name: "Titan",     desc: "~5 Go · très bonne culture générale · ordinateur avec bonne carte graphique uniquement", heavy: true },
 ];
 
-const DEFAULT_SYSTEM = "Tu es Home Made Intelligence (HMI), un assistant IA utile, amical et précis. Tu fonctionnes entièrement sur l'appareil de l'utilisateur, sans connexion à internet, donc tu ne peux pas consulter le web ni connaître l'actualité récente. Réponds dans la langue de l'utilisateur, de façon claire. Utilise le Markdown (listes, titres, blocs de code) quand ça aide. Si tu ne sais pas, dis-le honnêtement.";
+const DEFAULT_SYSTEM = "Tu es Home Made Intelligence (HMI), un assistant IA expert, amical et précis. Tu fonctionnes entièrement sur l'appareil de l'utilisateur, sans internet : tu ne peux pas consulter le web ni connaître l'actualité récente. Règles : 1) Réponds dans la langue de l'utilisateur, en français correct. 2) Pour les questions de calcul, de logique ou de code, réfléchis étape par étape avant de donner la réponse finale, et vérifie ton résultat. 3) Va droit au but, puis donne les détails utiles. 4) Pour le code, donne du code complet et fonctionnel dans un bloc de code. 5) N'invente jamais de faits, de chiffres ou de sources : si tu n'es pas sûr, dis-le clairement. 6) Utilise le Markdown (listes, titres) quand ça aide la lecture.";
 
 const LS_CHATS = "hmi_chats_v1", LS_SET = "hmi_settings_v1";
 const $ = s => document.querySelector(s);
@@ -244,6 +246,7 @@ const esc = s => s.replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "
 
 let settings = Object.assign({ model: "Qwen2.5-1.5B-Instruct-q4f16_1-MLC", temp: 0.7, system: DEFAULT_SYSTEM, voice: false, theme: "auto" }, load(LS_SET, {}));
 if (!MODELS.some(m => m.id === settings.model)) settings.model = MODELS[3].id;
+if (settings.system && settings.system.startsWith("Tu es Home Made Intelligence (HMI), un assistant IA utile")) settings.system = DEFAULT_SYSTEM;
 let chats = load(LS_CHATS, []);
 let currentId = null;
 let webllm = null, engine = null, loadedModel = null, generating = false, loadingModel = false;
@@ -555,7 +558,11 @@ $("#cancelSettings").onclick = () => $("#settingsModal").classList.remove("show"
 $("#settingsModal").onclick = e => { if (e.target.id === "settingsModal") $("#settingsModal").classList.remove("show"); };
 $("#saveSettings").onclick = () => {
   const sel = document.querySelector('input[name="model"]:checked');
-  if (sel && !generating) settings.model = sel.value;
+  if (sel && !generating) {
+    const chosen = MODELS.find(m => m.id === sel.value);
+    if (chosen?.heavy && sel.value !== settings.model && !confirm(chosen.name + " pèse environ 5 Go et a besoin d'un ordinateur avec une bonne carte graphique. Sur téléphone, la page risque de planter. Continuer ?")) return;
+    settings.model = sel.value;
+  }
   settings.temp = Number($("#temp").value);
   settings.system = $("#sys").value.trim() || DEFAULT_SYSTEM;
   settings.voice = $("#voice").checked;
