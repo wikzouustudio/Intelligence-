@@ -254,7 +254,11 @@ input[type=range]{width:100%;accent-color:var(--g2)}
 .scrim{display:none}
 .txt{width:100%;border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:14px;padding:12px;font:inherit;font-size:14px}
 #olBox{display:none}#olBox.on{display:block}
-.ol-help{margin-top:12px}.ol-help summary{cursor:pointer;color:var(--g3);font-weight:600}
+.ol-help{margin-top:12px}
+.ol-step{font-size:13.5px;line-height:1.5;margin:0 0 12px;color:var(--text)}
+.ol-step .btn{display:flex}
+.ol-pulls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.ol-pulls .btn{font-size:13px;padding:10px 8px}.ol-help summary{cursor:pointer;color:var(--g3);font-weight:600}
 .ol-help ol{padding-left:1.2em;margin:8px 0 0}.ol-help li{margin:6px 0;line-height:1.5}
 .ol-help code{background:var(--surface);padding:2px 6px;border-radius:6px;font-family:"JetBrains Mono",monospace;font-size:12px;user-select:all}
 
@@ -354,23 +358,32 @@ input[type=range]{width:100%;accent-color:var(--g2)}
       </div>
       <div class="help" style="margin:-4px 0 10px">Utilise les gros cerveaux installés sur ce PC avec Ollama : beaucoup plus intelligents, et toujours 100 % chez toi.</div>
       <div id="olBox">
+        <div class="ol-step"><b>1.</b> Télécharge l'installateur et double-clique dessus. Il installe Ollama, l'autorise pour HMI et le lance tout seul.
+          <button class="btn primary" id="olInstaller" type="button" style="margin-top:8px">⬇️ Installateur HMI PC (Windows)</button></div>
+        <div class="ol-step"><b>2.</b> Clique sur Connecter, puis installe un cerveau directement d'ici.</div>
         <input id="olUrl" class="txt" placeholder="http://localhost:11434" autocomplete="off">
         <div class="row" style="margin-top:8px">
           <select id="olModel"><option value="">Clique sur « Connecter »</option></select>
           <button class="btn" id="olTest" type="button" style="flex-shrink:0">Connecter</button>
         </div>
         <div class="help" id="olMsg"></div>
-        <details class="help ol-help"><summary>Comment installer Ollama (5 minutes)</summary>
+        <div class="bar" id="olBar" style="display:none;margin-top:8px"><i id="olBarFill"></i></div>
+        <div id="olPull" style="display:none">
+          <div class="help" style="margin:12px 0 6px;font-weight:600;color:var(--text)">Installer un cerveau (selon la mémoire de ta carte graphique) :</div>
+          <div class="ol-pulls">
+            <button class="btn" type="button" data-pull="qwen2.5:7b">7B · 8 Go</button>
+            <button class="btn" type="button" data-pull="qwen2.5:14b">14B · 12 Go</button>
+            <button class="btn" type="button" data-pull="qwen2.5:32b">32B · 24 Go</button>
+            <button class="btn" type="button" data-pull="qwen2.5-coder:14b">Code 14B · 12 Go</button>
+          </div>
+          <div class="help">Mémoire de ta carte graphique : Gestionnaire des tâches → Performances → GPU → « Mémoire GPU dédiée ».</div>
+        </div>
+        <details class="help ol-help"><summary>Installation manuelle (si l'installateur ne marche pas)</summary>
           <ol>
-            <li>Télécharge et installe <b>Ollama</b> depuis <b>ollama.com</b>.</li>
-            <li>Ouvre l'<b>Invite de commandes</b> (touche Windows, tape « cmd ») et installe un cerveau selon ta carte graphique :<br>
-              8 Go : <code>ollama pull qwen2.5:7b</code><br>
-              12 Go : <code>ollama pull qwen2.5:14b</code><br>
-              16 à 24 Go : <code>ollama pull qwen2.5:32b</code><br>
-              Pour le code : <code>ollama pull qwen2.5-coder:14b</code></li>
-            <li>Autorise HMI à parler à Ollama :<br><code>setx OLLAMA_ORIGINS "https://wikzouustudio.github.io"</code></li>
+            <li>Installe <b>Ollama</b> depuis <b>ollama.com</b>.</li>
+            <li>Dans l'<b>Invite de commandes</b> : <code>setx OLLAMA_ORIGINS "https://wikzouustudio.github.io"</code></li>
             <li><b>Quitte Ollama</b> (icône près de l'horloge → Quit) puis relance-le.</li>
-            <li>Reviens ici, clique sur <b>Connecter</b> et choisis ton cerveau. Si le navigateur demande l'accès au réseau local, accepte.</li>
+            <li>Clique sur <b>Connecter</b>. Si le navigateur demande l'accès au réseau local, accepte.</li>
           </ol>
         </details>
       </div>
@@ -1384,21 +1397,96 @@ function openSettings() {
   const sel = $("#olModel");
   sel.innerHTML = settings.olModel ? `<option value="${esc(settings.olModel)}">${esc(settings.olModel)}</option>` : '<option value="">Clique sur « Connecter »</option>';
   $("#olMsg").textContent = "";
+  $("#olPull").style.display = "none"; $("#olBar").style.display = "none";
   $("#theme").value = settings.theme;
   $("#settingsModal").classList.add("show"); closeSidebar();
 }
 $("#olOn").onchange = e => $("#olBox").classList.toggle("on", e.target.checked);
+/* Installateur Windows : installe Ollama (winget), l'autorise pour ce site et le lance */
+$("#olInstaller").onclick = () => {
+  const origin = location.protocol.startsWith("http") ? location.origin : "https://wikzouustudio.github.io";
+  const bat = [
+    "@echo off", "chcp 65001 >nul", "title Installateur HMI PC",
+    "echo.", "echo  === HMI - Mode PC puissant ===", "echo.",
+    "set \"OLLAMA_EXE=%LOCALAPPDATA%\\Programs\\Ollama\\ollama app.exe\"",
+    "if not exist \"%OLLAMA_EXE%\" (",
+    "  echo  [1/3] Installation d'Ollama...",
+    "  winget install -e --id Ollama.Ollama --accept-source-agreements --accept-package-agreements",
+    ")",
+    "if not exist \"%OLLAMA_EXE%\" (",
+    "  echo  Ollama n'a pas pu etre installe automatiquement.",
+    "  echo  Installe-le depuis https://ollama.com puis relance ce fichier.",
+    "  start https://ollama.com/download", "  pause", "  exit /b 1",
+    ")",
+    "echo  [2/3] Autorisation de HMI...",
+    `setx OLLAMA_ORIGINS "${origin}" >nul`,
+    `set "OLLAMA_ORIGINS=${origin}"`,
+    "echo  [3/3] Demarrage d'Ollama...",
+    "taskkill /IM \"ollama app.exe\" /F >nul 2>nul",
+    "taskkill /IM ollama.exe /F >nul 2>nul",
+    "timeout /t 2 >nul",
+    "start \"\" \"%OLLAMA_EXE%\"",
+    "echo.", "echo  Termine ! Retourne dans HMI, clique sur Connecter et installe un cerveau.", "echo.", "pause",
+  ].join("\r\n");
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([bat], { type: "application/octet-stream" }));
+  a.download = "Installateur-HMI-PC.bat";
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  $("#olMsg").textContent = "📥 Ouvre le fichier téléchargé. Si Windows affiche un avertissement : « Informations complémentaires » → « Exécuter quand même ».";
+};
+
+/* Télécharge un cerveau dans Ollama directement depuis HMI, avec la progression */
+document.querySelectorAll("[data-pull]").forEach(b => b.onclick = async () => {
+  const name = b.dataset.pull, msg = $("#olMsg"), bar = $("#olBar"), fill = $("#olBarFill");
+  const base = ($("#olUrl").value.trim() || "http://localhost:11434").replace(/\/+$/, "");
+  document.querySelectorAll("[data-pull]").forEach(x => x.disabled = true);
+  bar.style.display = ""; fill.style.width = "0%"; msg.textContent = `Téléchargement de ${name}…`;
+  try {
+    const r = await fetch(base + "/api/pull", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ model: name, stream: true }) });
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    const rd = r.body.getReader(), dec = new TextDecoder(); let buf = "", ok = false;
+    for (;;) {
+      const { done, value } = await rd.read(); if (done) break;
+      buf += dec.decode(value, { stream: true }); let i;
+      while ((i = buf.indexOf("\n")) >= 0) {
+        const line = buf.slice(0, i).trim(); buf = buf.slice(i + 1); if (!line) continue;
+        const j = JSON.parse(line);
+        if (j.error) throw new Error(j.error);
+        if (j.total && j.completed != null) {
+          const pct = Math.round(j.completed / j.total * 100);
+          fill.style.width = pct + "%";
+          msg.textContent = `Téléchargement de ${name} : ${pct} % (${(j.completed / 1e9).toFixed(1)} / ${(j.total / 1e9).toFixed(1)} Go)`;
+        } else if (j.status === "success") ok = true;
+        else if (j.status) msg.textContent = `${name} : ${j.status}…`;
+      }
+    }
+    if (!ok) throw new Error("téléchargement interrompu");
+    fill.style.width = "100%";
+    await $("#olTest").onclick();
+    $("#olModel").value = name;
+    msg.textContent = `✅ ${name} est installé et sélectionné. Clique sur Enregistrer.`;
+  } catch (e) {
+    msg.textContent = "❌ Échec du téléchargement : " + String(e.message || e).slice(0, 120);
+  } finally {
+    document.querySelectorAll("[data-pull]").forEach(x => x.disabled = false);
+    setTimeout(() => { bar.style.display = "none"; }, 1500);
+  }
+});
+
 $("#olTest").onclick = async () => {
   const msg = $("#olMsg"), sel = $("#olModel"), base = ($("#olUrl").value.trim() || "http://localhost:11434").replace(/\/+$/, "");
   msg.textContent = "Connexion…";
   try {
     const names = await olList(base);
-    if (!names.length) { msg.textContent = "⚠️ Ollama marche, mais aucun cerveau n'est installé. Fais l'étape 2 (ollama pull …)."; return; }
+    $("#olPull").style.display = "";
+    if (!names.length) { sel.innerHTML = '<option value="">Aucun cerveau installé</option>'; msg.textContent = "✅ Ollama est connecté. Installe un cerveau avec un des boutons ci-dessous."; return; }
     const prev = sel.value || settings.olModel;
     sel.innerHTML = names.map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join("");
     if (names.includes(prev)) sel.value = prev;
     msg.textContent = `✅ Connecté : ${names.length} cerveau${names.length > 1 ? "x" : ""} trouvé${names.length > 1 ? "s" : ""}. Choisis-en un puis Enregistrer.`;
   } catch (e) {
+    $("#olPull").style.display = "none";
     msg.textContent = "❌ Impossible de joindre Ollama. Vérifie qu'il est lancé, que l'étape OLLAMA_ORIGINS est faite et qu'Ollama a été relancé, et autorise l'accès au réseau local si le navigateur le demande.";
   }
 };
