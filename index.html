@@ -5,9 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
 <title>Home Made Intelligence</title>
 <meta name="description" content="Home Made Intelligence — une IA qui tourne entièrement sur ton appareil.">
-<meta name="theme-color" content="#0e0f13">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0e0f13" media="(prefers-color-scheme: dark)">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="HMI">
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -453,7 +455,7 @@ input[type=range]{width:100%;accent-color:var(--g2)}
 </div>
 
 <script type="module">
-const APP_VERSION = "2026-11-09-0805";
+const APP_VERSION = "2026-11-09-0810";
 const WEBLLM_URL = "https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm/+esm";
 const TRANSFORMERS_URL = "https://cdn.jsdelivr.net/npm/@huggingface/transformers@3";
 const IMG_MODEL = "onnx-community/Janus-Pro-1B-ONNX";
@@ -612,7 +614,11 @@ const input = $("#input"), sendBtn = $("#sendBtn"), box = $("#messages"), inner 
 function applyTheme() {
   const dark = settings.theme === "dark" || (settings.theme === "auto" && matchMedia("(prefers-color-scheme: dark)").matches);
   document.documentElement.dataset.theme = dark ? "dark" : "light";
-  document.querySelector('meta[name="theme-color"]').content = dark ? "#0e0f13" : "#ffffff";
+  /* On ne touche aux couleurs de la barre d'état que si le thème est forcé (les modifier fait bouger l'écran sur iPhone) */
+  document.querySelectorAll('meta[name="theme-color"]').forEach(m => {
+    const want = settings.theme === "auto" ? (m.media.includes("dark") ? "#0e0f13" : "#ffffff") : (dark ? "#0e0f13" : "#ffffff");
+    if (m.content !== want) m.content = want;
+  });
 }
 matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change", applyTheme);
 
@@ -1815,8 +1821,6 @@ setTimeout(autoConnectPro, 400);
 /* ---------- Écran stable sur iPhone ----------
    Dans une app web installée, iOS se trompe parfois sur la hauteur de l'écran (barre vide en bas),
    et quand le clavier s'ouvre il fait glisser toute la page. On calcule donc nous-mêmes la zone visible. */
-const IS_IPHONE = /iPhone|iPod/.test(navigator.userAgent);
-const STANDALONE = navigator.standalone === true || matchMedia("(display-mode: standalone)").matches;
 let fitRaf = 0;
 function fitScreen() {
   cancelAnimationFrame(fitRaf);
@@ -1824,19 +1828,14 @@ function fitScreen() {
     const vv = window.visualViewport;
     const vh = vv ? vv.height : innerHeight;
     const kb = !!vv && IS_MOBILE && innerHeight - vv.height > 150 && document.activeElement?.matches?.("input,textarea,select");
-    let h = vh, y = 0;
-    if (kb) {
-      y = Math.max(0, vv.offsetTop);
-    } else if (IS_IPHONE && STANDALONE) {
-      const portrait = innerHeight >= innerWidth;
-      const full = portrait ? Math.max(screen.width, screen.height) : Math.min(screen.width, screen.height);
-      h = Math.max(full, innerHeight);
-    } else {
-      h = innerHeight;
-    }
     const root = document.documentElement;
-    root.style.setProperty("--app-h", Math.round(h) + "px");
-    root.style.setProperty("--app-y", Math.round(y) + "px");
+    if (kb) {
+      root.style.setProperty("--app-h", Math.round(vh) + "px");
+      root.style.setProperty("--app-y", Math.round(Math.max(0, vv.offsetTop)) + "px");
+    } else {
+      root.style.removeProperty("--app-h");
+      root.style.removeProperty("--app-y");
+    }
     root.classList.toggle("kb", kb);
     if (!kb && (scrollX || scrollY)) scrollTo(0, 0);
   });
