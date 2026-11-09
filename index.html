@@ -11,6 +11,7 @@
 <meta name="apple-mobile-web-app-title" content="HMI">
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
@@ -29,9 +30,11 @@
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;height:100%}
+html{background:var(--bg)}
 body{font-family:"Figtree",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text);overflow:hidden;-webkit-font-smoothing:antialiased}
 button{font:inherit;color:inherit}
-.app{display:flex;height:100vh;height:100dvh}
+/* L'app couvre tout l'écran, même installée sur l'iPhone (100dvh laissait une barre vide en bas) */
+.app{display:flex;position:fixed;inset:0}
 @property --a{syntax:"<angle>";inherits:false;initial-value:0deg}
 @keyframes ring{to{--a:360deg}}
 @keyframes flow{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
@@ -423,7 +426,7 @@ input[type=range]{width:100%;accent-color:var(--g2)}
 </div>
 
 <script type="module">
-const APP_VERSION = "2026-11-08-1918";
+const APP_VERSION = "2026-11-09-0750";
 const WEBLLM_URL = "https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm/+esm";
 const TRANSFORMERS_URL = "https://cdn.jsdelivr.net/npm/@huggingface/transformers@3";
 const IMG_MODEL = "onnx-community/Janus-Pro-1B-ONNX";
