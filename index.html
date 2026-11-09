@@ -255,6 +255,29 @@ input[type=range]{width:100%;accent-color:var(--g2)}
 .btn.primary{background:var(--text);color:var(--bg)}
 .btn.danger{color:#ef4444;background:transparent;padding-left:4px}
 .scrim{display:none}
+.ic{width:1.15em;height:1.15em;vertical-align:-.2em;flex-shrink:0}
+.st-ok{color:#22c55e}.st-err{color:#ef4444}.st-warn{color:#f59e0b}
+.side-btn .ic{width:20px;height:20px;color:var(--muted)}
+.field label.t .ic,.help .ic{margin-right:6px;color:var(--g3)}
+.btn .ic{margin-right:6px}
+.chip .ico .ic{width:20px;height:20px}
+.privacy{align-items:flex-start}.privacy .ic{margin-top:2px}
+.privacy .ic,.proj-badge .ic{width:16px;height:16px}
+.bubble .ic{margin-right:6px;opacity:.75}
+.auto-note .ic{margin-right:6px;color:var(--g3)}
+.chat-item .pin .ic{width:13px;height:13px;color:var(--muted);vertical-align:-1px}
+.chat-item.proj .ic{width:17px;height:17px;color:var(--g3)}
+.menu button{display:flex;align-items:center;gap:10px}
+.menu button span{overflow:hidden;text-overflow:ellipsis}
+.menu button .ic{width:17px;height:17px;color:var(--muted)}
+.menu .danger .ic{color:#ef4444}
+.mode-chip{gap:6px}.mode-chip .ic{width:15px;height:15px}.mode-chip .ic.sm{width:12px;height:12px;opacity:.7}
+.img-actions .ic{width:16px;height:16px}
+.code-actions .run .ic{width:11px;height:11px;margin-right:5px;vertical-align:-1px}
+.runner-bar span .ic{margin-right:6px;width:13px;height:13px}
+.runner-bar button .ic{width:17px;height:17px;vertical-align:middle}
+.update-toast .ic{width:18px;height:18px;color:var(--g3);margin-right:6px}
+.ol-step .btn{align-items:center;justify-content:center}
 .update-toast{position:fixed;left:50%;top:calc(14px + env(safe-area-inset-top));transform:translateX(-50%);z-index:90;display:flex;align-items:center;gap:12px;background:var(--bg);border:1px solid var(--border);border-radius:999px;padding:8px 8px 8px 18px;font-size:14px;box-shadow:0 12px 40px #0007;animation:pop .25s ease;white-space:nowrap}
 .update-toast .btn{padding:8px 16px}
 .txt{width:100%;border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:14px;padding:12px;font:inherit;font-size:14px}
@@ -304,7 +327,7 @@ input[type=range]{width:100%;accent-color:var(--g2)}
     <button class="new-chat" id="newChat"><span class="plus">＋</span>Nouvelle discussion</button>
     <label class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="search" type="search" placeholder="Rechercher" autocomplete="off"></label>
     <div class="chats" id="chats"></div>
-    <button class="side-btn" id="openSettings">⚙️&nbsp; Réglages</button>
+    <button class="side-btn" id="openSettings"><i data-ic="settings"></i>Réglages</button>
   </aside>
   <div class="scrim" id="scrim"></div>
 
@@ -331,7 +354,7 @@ input[type=range]{width:100%;accent-color:var(--g2)}
         <button class="send" id="sendBtn" disabled aria-label="Envoyer"></button>
       </div>
       </div>
-      <div class="hint">HMI réfléchit et dessine sur ton appareil. Seule la recherche 🌐 passe par internet. Elle peut se tromper.</div>
+      <div class="hint">HMI réfléchit et dessine sur ton appareil. Seule la recherche web passe par internet. Elle peut se tromper.</div>
     </div>
   </main>
 </div>
@@ -354,17 +377,17 @@ input[type=range]{width:100%;accent-color:var(--g2)}
     <div class="field">
       <label class="t">Cerveau</label>
       <div class="models" id="modelList"></div>
-      <div class="help">Plus le cerveau est gros, plus il est intelligent, mais plus il est lent et lourd à télécharger.<br>🎨 Les images sont dessinées par un cerveau de dessin séparé (environ 1 à 2 Go), installé la première fois que tu crées une image. Ordinateur conseillé.</div>
+      <div class="help">Plus le cerveau est gros, plus il est intelligent, mais plus il est lent et lourd à télécharger.<br><i data-ic="image"></i>Les images sont dessinées par un cerveau de dessin séparé (environ 1 à 2 Go), installé la première fois que tu crées une image. Ordinateur conseillé.</div>
     </div>
     <div class="field" id="olField">
       <div class="row" style="margin-bottom:10px">
-        <label class="t" style="margin:0">💪 HMI PRO (sur ton PC avec Ollama)</label>
+        <label class="t" style="margin:0"><i data-ic="zap"></i>HMI PRO (sur ton PC avec Ollama)</label>
         <label class="switch"><input type="checkbox" id="olOn"><i></i></label>
       </div>
       <div class="help" style="margin:-4px 0 10px">Utilise les gros cerveaux installés sur ce PC avec Ollama : beaucoup plus intelligents, et toujours 100 % chez toi.</div>
       <div id="olBox">
         <div class="ol-step"><b>Tout est automatique :</b> télécharge l'installateur et double-clique dessus. Il installe Ollama, le démarre (et à chaque allumage du PC), choisit le cerveau adapté à ta carte graphique, puis rouvre HMI PRO prêt à l'emploi.
-          <button class="btn primary" id="olInstaller" type="button" style="margin-top:8px">⬇️ Installateur HMI PRO (Windows)</button></div>
+          <button class="btn primary" id="olInstaller" type="button" style="margin-top:8px"><i data-ic="download"></i>Installateur HMI PRO (Windows)</button></div>
         <div class="ol-step" style="color:var(--muted)">Déjà installé ? Clique simplement sur Connecter.</div>
         <input id="olUrl" class="txt" placeholder="http://localhost:11434" autocomplete="off">
         <div class="row" style="margin-top:8px">
@@ -380,7 +403,7 @@ input[type=range]{width:100%;accent-color:var(--g2)}
             <button class="btn" type="button" data-pull="qwen2.5:14b">14B · 12 Go</button>
             <button class="btn" type="button" data-pull="qwen2.5:32b">32B · 24 Go</button>
             <button class="btn" type="button" data-pull="qwen2.5-coder:14b">Code 14B · 12 Go</button>
-            <button class="btn" type="button" data-pull="x/z-image-turbo" style="grid-column:1/-1">🎨 Dessin HD (Z-Image) · 12 Go+</button>
+            <button class="btn" type="button" data-pull="x/z-image-turbo" style="grid-column:1/-1"><i data-ic="image"></i>Dessin HD (Z-Image) · 12 Go+</button>
           </div>
           <div class="help">Mémoire de ta carte graphique : Gestionnaire des tâches → Performances → GPU → « Mémoire GPU dédiée ».</div>
         </div>
@@ -405,7 +428,7 @@ input[type=range]{width:100%;accent-color:var(--g2)}
       <div class="help"><a href="#" id="resetSys" style="color:var(--g2)">Remettre la personnalité par défaut</a></div>
     </div>
     <div class="field row">
-      <label class="t" style="margin:0">💻 Utiliser HMI Code automatiquement pour le code</label>
+      <label class="t" style="margin:0"><i data-ic="code"></i>Utiliser HMI Code automatiquement pour le code</label>
       <label class="switch"><input type="checkbox" id="autoCode"><i></i></label>
     </div>
     <div class="field row">
@@ -426,7 +449,7 @@ input[type=range]{width:100%;accent-color:var(--g2)}
 </div>
 
 <script type="module">
-const APP_VERSION = "2026-11-09-0750";
+const APP_VERSION = "2026-11-09-0800";
 const WEBLLM_URL = "https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm/+esm";
 const TRANSFORMERS_URL = "https://cdn.jsdelivr.net/npm/@huggingface/transformers@3";
 const IMG_MODEL = "onnx-community/Janus-Pro-1B-ONNX";
@@ -529,6 +552,35 @@ const store = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); retu
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 const esc = s => s.replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const SPARK = (cls = "") => `<svg class="spark ${cls}"><use href="#spark"/></svg>`;
+/* ---------- Icônes au trait (style ChatGPT) ---------- */
+const IC = {
+  bulb: '<path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.6 10.8c.6.5 1 1.2 1.1 2V16h5v-.2c.1-.8.5-1.5 1.1-2A6 6 0 0 0 12 3Z"/>',
+  mail: '<rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="m4 7.5 8 5.5 8-5.5"/>',
+  image: '<rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="9" cy="9" r="1.8"/><path d="m21 15-4.5-4.5L6 21"/>',
+  code: '<path d="m8 8-4 4 4 4M16 8l4 4-4 4M13.5 5l-3 14"/>',
+  lock: '<rect x="5" y="11" width="14" height="10" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
+  settings: '<path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/>',
+  globe: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.4 2.6 3.6 5.6 3.6 9s-1.2 6.4-3.6 9c-2.4-2.6-3.6-5.6-3.6-9S9.6 5.6 12 3Z"/>',
+  pin: '<path d="M9 4h6l-1 6 3 3v2H7v-2l3-3-1-6Z"/><path d="M12 15v6"/>',
+  pencil: '<path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16v4Z"/><path d="m13.5 6.5 4 4"/>',
+  folder: '<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z"/>',
+  trash: '<path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/>',
+  undo: '<path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/>',
+  chat: '<path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12Z"/>',
+  download: '<path d="M12 4v11M7 10l5 5 5-5M5 20h14"/>',
+  sparkles: '<path d="M11 3l1.8 4.7 4.7 1.8-4.7 1.8L11 16l-1.8-4.7L4.5 9.5l4.7-1.8L11 3Z"/><path d="M18.5 14.5l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8.8-2Z"/>',
+  ok: '<circle cx="12" cy="12" r="9"/><path d="m8 12.5 2.8 2.8L16 9.5"/>',
+  err: '<circle cx="12" cy="12" r="9"/><path d="m9 9 6 6M15 9l-6 6"/>',
+  warn: '<path d="M12 3.5 2.5 20h19L12 3.5Z"/><path d="M12 10v4M12 17v.01"/>',
+  x: '<path d="M6 6l12 12M18 6 6 18"/>',
+  tool: '<path d="M15 4a5 5 0 0 0-4.6 6.9L3.5 17.8a1.9 1.9 0 0 0 2.7 2.7l6.9-6.9A5 5 0 0 0 20 9l-3 1-2-2 1-3Z"/>',
+  play: '<path d="M7 4.5v15l12-7.5-12-7.5Z" fill="currentColor"/>',
+  reload: '<path d="M20 12a8 8 0 1 1-2.3-5.7L20 8.5"/><path d="M20 3.5v5h-5"/>',
+  expand: '<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>',
+  zap: '<path d="M13 2 4 14h7l-1 8 9-12h-7l1-8Z"/>',
+  search: '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',
+};
+const ic = (n, cls = "") => `<svg class="ic ${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${IC[n] || ""}</svg>`;
 const ICON = {
   send: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>',
   stop: '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2.5"/></svg>',
@@ -576,7 +628,7 @@ function enhanceCode(el) {
     const bar = document.createElement("div"); bar.className = "code-actions";
     const src = () => (code || pre).textContent;
     if (isRunnable(lang, src())) {
-      const r = document.createElement("button"); r.className = "run"; r.textContent = "▶ Tester";
+      const r = document.createElement("button"); r.className = "run"; r.innerHTML = ic("play") + "Tester";
       r.onclick = () => runCode(pre, src(), lang);
       bar.appendChild(r);
     }
@@ -623,7 +675,7 @@ function runCode(pre, code, lang) {
   const prev = pre.nextElementSibling;
   if (prev?.classList.contains("runner")) { prev.remove(); return; }
   const r = document.createElement("div"); r.className = "runner";
-  r.innerHTML = '<div class="runner-bar"><span>▶ Aperçu en direct</span><div><button data-a="reload" title="Relancer">↻</button><button data-a="full" title="Plein écran">⛶</button><button data-a="close" title="Fermer">✕</button></div></div>';
+  r.innerHTML = '<div class="runner-bar"><span>' + ic("play") + 'Aperçu en direct</span><div><button data-a="reload" title="Relancer">' + ic("reload") + '</button><button data-a="full" title="Plein écran">' + ic("expand") + '</button><button data-a="close" title="Fermer">' + ic("x") + '</button></div></div>';
   let f = makeFrame(code, lang); r.appendChild(f);
   r.querySelector('[data-a="reload"]').onclick = () => { const n = makeFrame(code, lang); f.replaceWith(n); f = n; };
   r.querySelector('[data-a="close"]').onclick = () => r.remove();
@@ -633,7 +685,7 @@ function runCode(pre, code, lang) {
 }
 function openFull(code, lang) {
   const w = document.createElement("div"); w.className = "fullrun";
-  w.innerHTML = '<div class="runner-bar"><span>▶ Plein écran</span><div><button data-a="reload" title="Relancer">↻</button><button data-a="close" title="Fermer">✕</button></div></div>';
+  w.innerHTML = '<div class="runner-bar"><span>' + ic("expand") + 'Plein écran</span><div><button data-a="reload" title="Relancer">' + ic("reload") + '</button><button data-a="close" title="Fermer">' + ic("x") + '</button></div></div>';
   let f = makeFrame(code, lang); w.appendChild(f);
   w.querySelector('[data-a="reload"]').onclick = () => { const n = makeFrame(code, lang); f.replaceWith(n); f = n; };
   w.querySelector('[data-a="close"]').onclick = () => w.remove();
@@ -711,7 +763,8 @@ function setMode(m) {
   currentMode = m;
   const c = $("#modeChip");
   c.classList.toggle("on", !!m);
-  c.textContent = m === "image" ? "🎨 Image ✕" : m === "search" ? "🌐 Web ✕" : m === "code" ? "💻 Code ✕" : "";
+  const MODE_UI = { image: ["image", "Image"], search: ["globe", "Web"], code: ["code", "Code"] }[m];
+  c.innerHTML = MODE_UI ? ic(MODE_UI[0]) + MODE_UI[1] + ic("x", "sm") : "";
   input.placeholder = m === "image" ? "Décris l'image" : m === "search" ? "Que chercher ?" : m === "code" ? "Que veux-tu coder ?" : "Demande à HMI";
 }
 function detectMode(t) {
@@ -789,7 +842,7 @@ function emptyLine(text) { const e = document.createElement("div"); e.className 
 function chatRow(c, showPin = true) {
   const d = document.createElement("div");
   d.className = "chat-item" + (c.id === currentId ? " active" : "");
-  d.innerHTML = `${c.pinned && showPin ? '<span class="pin">📌</span>' : ""}<span class="t"></span><button class="more" aria-label="Options">⋯</button>`;
+  d.innerHTML = `${c.pinned && showPin ? `<span class="pin">${ic("pin")}</span>` : ""}<span class="t"></span><button class="more" aria-label="Options">⋯</button>`;
   d.querySelector(".t").textContent = c.title;
   d.onclick = () => selectChat(c.id);
   d.querySelector(".more").onclick = e => { e.stopPropagation(); chatMenu(c, e.currentTarget); };
@@ -811,8 +864,8 @@ function renderSidebar() {
     const items = used.filter(c => c.project === p.id);
     const row = document.createElement("div");
     row.className = "chat-item proj";
-    row.innerHTML = `<span class="chev">${p.open ? "▾" : "▸"}</span><span class="t"></span><span class="count">${items.length || ""}</span><button class="more" aria-label="Options du projet">⋯</button>`;
-    row.querySelector(".t").textContent = "📁 " + p.name;
+    row.innerHTML = `<span class="chev">${p.open ? "▾" : "▸"}</span>${ic("folder")}<span class="t"></span><span class="count">${items.length || ""}</span><button class="more" aria-label="Options du projet">⋯</button>`;
+    row.querySelector(".t").textContent = p.name;
     row.onclick = () => { p.open = !p.open; saveProjects(); renderSidebar(); };
     row.querySelector(".more").onclick = e => { e.stopPropagation(); projectMenu(p, e.currentTarget); };
     list.appendChild(row);
@@ -846,7 +899,8 @@ function showMenu(anchor, items) {
   items.forEach(it => {
     if (it === "-") { m.appendChild(document.createElement("hr")); return; }
     if (it.label) { const l = document.createElement("div"); l.className = "lbl"; l.textContent = it.label; m.appendChild(l); return; }
-    const b = document.createElement("button"); b.textContent = it.text; if (it.danger) b.className = "danger";
+    const b = document.createElement("button"); if (it.danger) b.className = "danger";
+    b.innerHTML = (it.icon ? ic(it.icon) : "") + "<span></span>"; b.lastChild.textContent = it.text;
     b.onclick = e => { e.stopPropagation(); closeMenu(); it.act(); };
     m.appendChild(b);
   });
@@ -859,22 +913,22 @@ function showMenu(anchor, items) {
 }
 function chatMenu(c, anchor) {
   const items = [
-    { text: c.pinned ? "📌  Désépingler" : "📌  Épingler", act: () => { c.pinned = !c.pinned; saveChats(); renderSidebar(); } },
-    { text: "✏️  Renommer", act: () => renameChat(c.id) },
+    { icon: "pin", text: c.pinned ? "Désépingler" : "Épingler", act: () => { c.pinned = !c.pinned; saveChats(); renderSidebar(); } },
+    { icon: "pencil", text: "Renommer", act: () => renameChat(c.id) },
     "-", { label: "Déplacer vers un projet" },
-    ...projects.filter(p => p.id !== c.project).map(p => ({ text: "📁  " + p.name, act: () => { c.project = p.id; p.open = true; saveChats(); saveProjects(); renderSidebar(); } })),
-    { text: "＋  Nouveau projet…", act: () => { const p = createProject(); if (p) { c.project = p.id; saveChats(); renderSidebar(); } } },
+    ...projects.filter(p => p.id !== c.project).map(p => ({ icon: "folder", text: p.name, act: () => { c.project = p.id; p.open = true; saveChats(); saveProjects(); renderSidebar(); } })),
+    { icon: "folder", text: "Nouveau projet…", act: () => { const p = createProject(); if (p) { c.project = p.id; saveChats(); renderSidebar(); } } },
   ];
-  if (c.project) items.push({ text: "↩︎  Retirer du projet", act: () => { delete c.project; saveChats(); renderSidebar(); } });
-  items.push("-", { text: "🗑  Supprimer", danger: true, act: () => deleteChat(c.id) });
+  if (c.project) items.push({ icon: "undo", text: "Retirer du projet", act: () => { delete c.project; saveChats(); renderSidebar(); } });
+  items.push("-", { icon: "trash", text: "Supprimer", danger: true, act: () => deleteChat(c.id) });
   showMenu(anchor, items);
 }
 function projectMenu(p, anchor) {
   showMenu(anchor, [
-    { text: "💬  Nouvelle discussion dans ce projet", act: () => newChat(p.id) },
-    { text: "✏️  Renommer le projet", act: () => { const n = prompt("Nom du projet :", p.name); if (n && n.trim()) { p.name = n.trim().slice(0, 40); saveProjects(); renderSidebar(); } } },
+    { icon: "chat", text: "Nouvelle discussion dans ce projet", act: () => newChat(p.id) },
+    { icon: "pencil", text: "Renommer le projet", act: () => { const n = prompt("Nom du projet :", p.name); if (n && n.trim()) { p.name = n.trim().slice(0, 40); saveProjects(); renderSidebar(); } } },
     "-",
-    { text: "🗑  Supprimer le projet", danger: true, act: () => {
+    { icon: "trash", text: "Supprimer le projet", danger: true, act: () => {
       if (!confirm(`Supprimer le projet « ${p.name} » ? Les discussions qu'il contient sont gardées.`)) return;
       chats.forEach(c => { if (c.project === p.id) delete c.project; });
       projects = projects.filter(x => x !== p); saveProjects(); saveChats(); renderAll();
@@ -883,10 +937,10 @@ function projectMenu(p, anchor) {
 }
 
 const SUGGESTIONS = [
-  ["💡", "Explique-moi comment fonctionne un trou noir, simplement"],
-  ["✉️", "Aide-moi à écrire un e-mail poli pour demander un rendez-vous"],
-  ["🎨", "Crée une image d'un chat astronaute sur la Lune", "image"],
-  ["💻", "Code un petit jeu en JavaScript dans une page HTML"],
+  ["bulb", "Explique-moi comment fonctionne un trou noir, simplement", null, "#eab308"],
+  ["mail", "Aide-moi à écrire un e-mail poli pour demander un rendez-vous", null, "#84cc16"],
+  ["image", "Crée une image d'un chat astronaute sur la Lune", "image", "#22c55e"],
+  ["code", "Code un petit jeu en JavaScript dans une page HTML", null, "#10b981"],
 ];
 function greeting() {
   const h = new Date().getHours();
@@ -894,9 +948,9 @@ function greeting() {
 }
 function welcomeHTML() {
   const proj = projects.find(p => p.id === pendingProject);
-  return `<div class="welcome">${proj ? `<div class="proj-badge">📁 Nouvelle discussion dans « ${esc(proj.name)} »</div>` : ""}<h1 class="grad-text">${greeting()} !</h1><h2>Comment je peux t'aider ?</h2>
-  <div class="chips">${SUGGESTIONS.map((s, i) => `<button class="chip" data-i="${i}"><span>${esc(s[1])}</span><span class="ico">${s[0]}</span></button>`).join("")}</div>
-  <div class="privacy">🔒 Tes discussions et tes images restent sur ton appareil. Touche ＋ pour dessiner ou chercher sur le web.</div></div>`;
+  return `<div class="welcome">${proj ? `<div class="proj-badge">${ic("folder")}Nouvelle discussion dans « ${esc(proj.name)} »</div>` : ""}<h1 class="grad-text">${greeting()} !</h1><h2>Comment je peux t'aider ?</h2>
+  <div class="chips">${SUGGESTIONS.map((s, i) => `<button class="chip" data-i="${i}"><span>${esc(s[1])}</span><span class="ico" style="color:${s[3]}">${ic(s[0])}</span></button>`).join("")}</div>
+  <div class="privacy">${ic("lock")}Tes discussions et tes images restent sur ton appareil. Touche ＋ pour dessiner ou chercher sur le web.</div></div>`;
 }
 
 function msgEl(m, isLast) {
@@ -905,12 +959,15 @@ function msgEl(m, isLast) {
   if (m.role === "user" && m.auto) {
     d.className = "msg auto";
     const n = document.createElement("div"); n.className = "auto-note";
-    n.textContent = "🔧 Test automatique : une erreur a été trouvée, HMI corrige son code…";
+    n.innerHTML = ic("tool") + "Test automatique : une erreur a été trouvée, HMI corrige son code…";
     n.title = m.content; d.appendChild(n);
     return d;
   }
   if (m.role === "user") {
-    const b = document.createElement("div"); b.className = "bubble"; b.textContent = (m.mode === "image" ? "🎨 " : m.mode === "search" ? "🌐 " : m.mode === "code" ? "💻 " : "") + m.content; d.appendChild(b);
+    const b = document.createElement("div"); b.className = "bubble"; b.textContent = m.content;
+    const mi = { image: "image", search: "globe", code: "code" }[m.mode];
+    if (mi) b.insertAdjacentHTML("afterbegin", ic(mi));
+    d.appendChild(b);
     return d;
   }
   const live = generating && isLast;
@@ -920,7 +977,7 @@ function msgEl(m, isLast) {
   else { content.innerHTML = md(m.content); enhanceCode(content); }
   if (m.image) {
     const g = document.createElement("div"); g.className = "gen-img";
-    g.innerHTML = `<img alt=""><div class="img-actions"><a target="_blank" rel="noopener">⬇️ Ouvrir / enregistrer</a></div>`;
+    g.innerHTML = `<img alt=""><div class="img-actions"><a target="_blank" rel="noopener">${ic("download")}Ouvrir / enregistrer</a></div>`;
     g.querySelector("img").src = m.image; g.querySelector("img").alt = m.imgPrompt || "Image générée";
     const a = g.querySelector("a"); a.href = m.image;
     if (m.image.startsWith("data:")) a.download = "hmi-image.jpg";
@@ -1342,7 +1399,7 @@ async function makeImage(chat) {
           setThinkingLabel("Dessin HD en cours…");
           const url = await olImage(im, p, pct => setThinkingLabel(`Dessin HD en cours… ${pct} %`));
           asst.image = await toJpeg(url, 0.88);
-          asst.content = "Voici ton image 🎨, dessinée en HD sur ton PC.";
+          asst.content = "Voici ton image, dessinée en HD sur ton PC.";
           hdDone = true;
         } catch (err) {
           if (stopped) throw err;
@@ -1362,7 +1419,7 @@ async function makeImage(chat) {
     const outputs = await imgModel.generate_images({ ...inputs, min_new_tokens: n, max_new_tokens: n, do_sample: true, streamer });
     const blob = await outputs[0].toBlob("image/jpeg", 0.9);
     asst.image = await blobToDataURL(blob);
-    asst.content = "Voici ton image 🎨, dessinée directement sur ton appareil." + hdNote;
+    asst.content = "Voici ton image, dessinée directement sur ton appareil." + hdNote;
     }
   } catch (e) {
     console.error(e);
@@ -1444,9 +1501,9 @@ $("#modeChip").onclick = () => { setMode(null); input.focus(); };
 $("#plusBtn").onclick = e => {
   e.stopPropagation();
   showMenu(e.currentTarget, [
-    { text: "🎨  Dessiner une image", act: () => { setMode("image"); input.focus(); } },
-    { text: "🌐  Rechercher sur le web", act: () => { setMode("search"); input.focus(); } },
-    { text: "💻  Mode code (HMI Code)", act: () => { setMode("code"); input.focus(); } },
+    { icon: "image", text: "Dessiner une image", act: () => { setMode("image"); input.focus(); } },
+    { icon: "globe", text: "Rechercher sur le web", act: () => { setMode("search"); input.focus(); } },
+    { icon: "code", text: "Mode code (HMI Code)", act: () => { setMode("code"); input.focus(); } },
   ]);
 };
 $("#search").addEventListener("input", e => { searchQ = e.target.value; renderSidebar(); });
@@ -1554,7 +1611,7 @@ Write-Host '  Termine ! HMI PRO est pret. Tu peux fermer cette fenetre.' -Foregr
   a.download = "Installateur-HMI-PRO.bat";
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 5000);
-  $("#olMsg").textContent = "📥 Double-clique sur le fichier téléchargé. Si Windows affiche un avertissement : « Informations complémentaires » → « Exécuter quand même ». Ensuite, ne touche à rien : HMI PRO se rouvrira tout seul, prêt.";
+  $("#olMsg").innerHTML = ic("download") + " Double-clique sur le fichier téléchargé. Si Windows affiche un avertissement : « Informations complémentaires » → « Exécuter quand même ». Ensuite, ne touche à rien : HMI PRO se rouvrira tout seul, prêt.";
 };
 
 /* Télécharge un cerveau dans Ollama directement depuis HMI, avec la progression */
@@ -1585,10 +1642,10 @@ document.querySelectorAll("[data-pull]").forEach(b => b.onclick = async () => {
     if (!ok) throw new Error("téléchargement interrompu");
     fill.style.width = "100%";
     await $("#olTest").onclick();
-    if (isImgModel(name)) msg.textContent = "✅ Le dessin HD est installé : tes prochaines images seront dessinées en HD sur ton PC.";
-    else { $("#olModel").value = name; msg.textContent = `✅ ${name} est installé et sélectionné. Clique sur Enregistrer.`; }
+    if (isImgModel(name)) msg.innerHTML = ic("ok", "st-ok") + " Le dessin HD est installé : tes prochaines images seront dessinées en HD sur ton PC.";
+    else { $("#olModel").value = name; msg.innerHTML = ic("ok", "st-ok") + ` ${esc(name)} est installé et sélectionné. Clique sur Enregistrer.`; }
   } catch (e) {
-    msg.textContent = "❌ Échec du téléchargement : " + String(e.message || e).slice(0, 120);
+    msg.innerHTML = ic("err", "st-err") + " Échec du téléchargement : " + esc(String(e.message || e).slice(0, 120));
   } finally {
     document.querySelectorAll("[data-pull]").forEach(x => x.disabled = false);
     setTimeout(() => { bar.style.display = "none"; }, 1500);
@@ -1612,21 +1669,21 @@ $("#olTest").onclick = async () => {
     $("#olPull").style.display = "";
     const hd = names.find(isImgModel);
     names = names.filter(n => !isImgModel(n));
-    if (!names.length) { sel.innerHTML = '<option value="">Aucun cerveau installé</option>'; msg.textContent = "✅ Ollama est connecté. Installe un cerveau avec un des boutons ci-dessous." + (hd ? " 🎨 Dessin HD installé." : ""); return; }
+    if (!names.length) { sel.innerHTML = '<option value="">Aucun cerveau installé</option>'; msg.innerHTML = ic("ok", "st-ok") + " Ollama est connecté. Installe un cerveau avec un des boutons ci-dessous." + (hd ? " Dessin HD installé." : ""); return; }
     const prev = sel.value || settings.olModel;
     sel.innerHTML = names.map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join("");
     if (names.includes(prev)) sel.value = prev;
-    msg.textContent = `✅ Connecté : ${names.length} cerveau${names.length > 1 ? "x" : ""} trouvé${names.length > 1 ? "s" : ""}. Choisis-en un puis Enregistrer.` + (hd ? " 🎨 Dessin HD installé." : "");
+    msg.innerHTML = ic("ok", "st-ok") + ` Connecté : ${names.length} cerveau${names.length > 1 ? "x" : ""} trouvé${names.length > 1 ? "s" : ""}. Choisis-en un puis Enregistrer.` + (hd ? " Dessin HD installé." : "");
   } catch (e) {
     $("#olPull").style.display = "none";
     /* Diagnostic : Ollama est-il lancé mais refuse HMI (autorisation), ou injoignable ? */
     let running = false;
     try { await fetch(base + "/", { mode: "no-cors", cache: "no-store" }); running = true; } catch {}
     const isEdge = /Edg\//.test(navigator.userAgent), isWin = /Windows/.test(navigator.userAgent);
-    const edgeBtn = isWin && !isEdge ? `<a class="btn primary" style="display:inline-flex;margin-top:10px;text-decoration:none" href="microsoft-edge:${location.href.split("#")[0]}">🌐 Ouvrir HMI dans Edge</a>` : "";
+    const edgeBtn = isWin && !isEdge ? `<a class="btn primary" style="display:inline-flex;align-items:center;margin-top:10px;text-decoration:none" href="microsoft-edge:${location.href.split("#")[0]}">${ic("globe")}Ouvrir HMI dans Edge</a>` : "";
     msg.innerHTML = running
-      ? "⚠️ <b>Ollama est bien lancé, mais il refuse HMI.</b> Relance l'installateur HMI PRO (il donne l'autorisation), puis <b>quitte et relance Ollama</b> (icône près de l'horloge → clic droit → Quit)."
-      : `❌ <b>HMI n'arrive pas à joindre Ollama.</b><br>1. Clique ici : <a href="${base}" target="_blank" rel="noopener" style="color:var(--g3);font-weight:700">tester Ollama</a>. Si l'onglet affiche « Ollama is running », Ollama marche et c'est ton navigateur qui bloque.<br>2. Dans ce cas, ouvre HMI dans <b>Edge</b> (déjà installé sur Windows), clique sur Connecter et accepte l'autorisation qu'il demande.<br>${edgeBtn}`;
+      ? ic("warn", "st-warn") + " <b>Ollama est bien lancé, mais il refuse HMI.</b> Relance l'installateur HMI PRO (il donne l'autorisation), puis <b>quitte et relance Ollama</b> (icône près de l'horloge → clic droit → Quit)."
+      : `${ic("err", "st-err")} <b>HMI n'arrive pas à joindre Ollama.</b><br>1. Clique ici : <a href="${base}" target="_blank" rel="noopener" style="color:var(--g3);font-weight:700">tester Ollama</a>. Si l'onglet affiche « Ollama is running », Ollama marche et c'est ton navigateur qui bloque.<br>2. Dans ce cas, ouvre HMI dans <b>Edge</b> (déjà installé sur Windows), clique sur Connecter et accepte l'autorisation qu'il demande.<br>${edgeBtn}`;
   }
 };
 $("#temp").oninput = e => $("#tempVal").textContent = e.target.value;
@@ -1718,7 +1775,7 @@ async function checkUpdate() {
     const v = (t.match(/APP_VERSION = "([^"]+)"/) || [])[1];
     if (!v || v === APP_VERSION || document.querySelector(".update-toast")) return;
     const d = document.createElement("div"); d.className = "update-toast";
-    d.innerHTML = '<span>✨ Nouvelle version de HMI</span><button class="btn primary">Mettre à jour</button>';
+    d.innerHTML = '<span>' + ic("sparkles") + 'Nouvelle version de HMI</span><button class="btn primary">Mettre à jour</button>';
     d.querySelector("button").onclick = () => { location.href = location.pathname + "?v=" + encodeURIComponent(v); };
     document.body.appendChild(d);
   } catch {}
@@ -1743,15 +1800,16 @@ async function autoConnectPro() {
       settings.ollama = true; settings.olUrl = base;
       settings.olModel = names.includes(want) ? want : names[0];
       store(LS_SET, settings); olReady = true; updateStatus();
-      toast(`✅ HMI PRO est prêt avec <b>${esc(settings.olModel)}</b>`);
+      toast(`${ic("ok")}HMI PRO est prêt avec <b>${esc(settings.olModel)}</b>`);
       return;
     } catch {}
   }
-  toast("⚠️ HMI n'a pas pu se connecter à Ollama. Si le navigateur demande une autorisation, accepte-la puis recharge la page.", 9000);
+  toast(ic("warn") + "HMI n'a pas pu se connecter à Ollama. Si le navigateur demande une autorisation, accepte-la puis recharge la page.", 9000);
 }
 setTimeout(autoConnectPro, 400);
 
 /* ---------- Démarrage ---------- */
+document.querySelectorAll("[data-ic]").forEach(e => { e.outerHTML = ic(e.dataset.ic); });
 applyTheme();
 chats = chats.filter(c => c.messages && c.messages.length);
 saveChats();
